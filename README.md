@@ -13,7 +13,13 @@ Deploying this website isn't very complicated.
    countless tutorials online on how to do this.
    
 ## How does it work?
-### Upload
+### Short description
+Your browser encrypts the file locally before sending it to the server. The key is carefully placed inside the url,
+so it isn't sent when you request the file back. This way the server has no knowledge about the contents of the file
+and only you have the key to decrypt the data.
+
+### Long description
+#### Upload
 Once the user selects a file, the javascript will generate a random custom base73 string as a password.
 The custom base73 format makes it so the urls are as dense as possible without sacrificing security.
 It will also generate "salt" for the PBKDF2 key derivation function. This salt will be later sent to
@@ -50,7 +56,7 @@ https://f.bain.cz/<id>#<password>
 Since the password is set as a fragment (after the `#`) it is not sent to the server when you request the file
 back.
 
-### Download
+#### Download
 *(I recommend reading the upload part to fully understand the download)*
 
 Download is simpler than upload. First off the browser parses the url for the id and password.

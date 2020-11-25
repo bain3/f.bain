@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Download</title>
+    <style>
+        body {
+            background-color: #13131b;
+            font-family: 'Nunito Sans', sans-serif;
+            color: #7f7f7f;
+        }
+
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            margin: auto;
+            text-align: center;
+        }
+        .progress {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            justify-content: flex-start;
+            border-radius: 100px;
+            align-items: center;
+            position: relative;
+            padding: 0 5px;
+            display: flex;
+            height: 1em;
+            width: 300px;
+        }
+
+        .progress-value {
+            transition: width ease-in-out 100ms;
+            box-shadow: 0 10px 40px -10px #fff;
+            border-radius: 100px;
+            background: #fff;
+            height: 0.5em;
+            width: 0;
+        }
+        @keyframes slidein {
+            0% {top:-20px;}
+            15% {top: 7px;}
+            85% {top: 7px;}
+            100% {top:-25px;}
+        }
+    </style>
+    <script src="https://f.bain.cz/sjcl.js"></script>
+</head>
+<body onload="ol()">
+<div class="center">
+    <p>File is being downloaded and decrypted...</p>
+    <div class="progress">
+        <div class="progress-value"></div>
+    </div>
+    <p id="errors" hidden/>
+</div>
+<script>
+    async function ol() {
+        /*
+        I am sorry that this code is a mess. I'll refactor later (lol).
+         */
+        let id_pair = location.href.substring(location.href.lastIndexOf('/') + 1).split("#");
+        let error_el = document.getElementById("errors");
+        let progress_el = document.getElementsByClassName('progress')[0];
+
+        // -- request meta --
+        let xhr = new XMLHttpRequest();
+        let meta;
+        let promise = new Promise(resolve => { // fuck callbacks
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === this.DONE) {
+                    if (this.status === 200) {
+                        meta = JSON.parse(this.responseText);
+                    } else {
+                        error_el.innerText = "Failed to download metadata. (status code:" + this.status + ")";
+                        error_el.hidden = false;
+                    }
+                    resolve(true);
+                }
+            });
+            xhr.open("GET", "http://localhost:3333/" + id_pair[0] + "/meta");
+            xhr.send();
+        });
+        await promise;
+        if (!error_el.hidden) return;
+        document.getElementsByClassName('progress-value')[0].style.width = '5%';
+
+        // -- getting raw encrypted data --
+        let raw;
+        xhr = new XMLHttpRequest();
+        promise = new Promise(resolve => { // fuck callbacks
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === this.DONE) {
+                    if (this.status === 200) {
+                        raw = this.response;
+                    } else {
+                        error_el.innerText = "Failed to download encrypted file. (status code:" + this.status + ")";
+                        error_el.hidden = false;
+                    }
+                    resolve(true);
+                }
+            });
+            xhr.addEventListener("progress", function (p) {
+                document.getElementsByClassName('progress-value')[0].style.width = 5+p.loaded/p.total*45+'%';
+            })
+            xhr.open("GET", "http://localhost:3333/" + id_pair[0] + "/raw");
+            xhr.responseType = "blob";
+            xhr.send();
+        });
+        await promise;
+        if (!error_el.hidden) return;
+        document.getElementsByClassName('progress-value')[0].style.width = '50%';
+
+        // -- decryption --
+        let password = decodeURI(id_pair[1]);
+        // strengthen password with salt from the meta
+        let strengthened = sjcl.misc.pbkdf2(password, meta.salt, 50000, 768);
+
+        // create aes instance using our generated key (first 256 bits)
+        let prp = new sjcl.cipher.aes(strengthened.splice(0, 8));
+
+        let iv = strengthened.splice(0,8); // setting iv (second 256 bits)
+
+        let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
+        try {
+            let offset = 0;
+            while (offset < raw.size) {
+                // getting data
+                let block = await raw.slice(offset, offset+5242928).arrayBuffer();
+
+                // decrypting
+                let decrypt = sjcl.mode.gcm.decrypt(prp, sjcl.codec.arrayBuffer.toBits(block), iv);
+                let d_block = sjcl.codec.arrayBuffer.fromBits(decrypt, false);
+
+                // adding decrypted data to output blob (also takes a shitton of time,
+                // pls help if you have a better solution)
+                output_blob = new Blob([output_blob, d_block.slice(32, d_block.byteLength)]);
+
+                // setting next iv
+                iv = new Int32Array(d_block.slice(0, 32));
+
+                offset += 5242928;
+                document.getElementsByClassName('progress-value')[0].style.width = 50+offset/raw.size*50+'%';
+            }
+        } catch (e) {
+            error_el.innerText = "Error while decrypting file.\n" + e;
+            error_el.hidden = false;
+            progress_el.style.visibility = 'hidden';
+        }
+
+        if (output_blob.size === 0) return;
+
+        // -- decrypt filename --
+        let name_iv = strengthened.splice(0, 8); // using third 256 bits of our stretched key
+        let enc_bits = sjcl.mode.gcm.decrypt(prp, sjcl.codec.base64.toBits(meta.filename), name_iv);
+        let filename = sjcl.codec.utf8String.fromBits(enc_bits, false);
+
+        document.getElementsByClassName('progress-value')[0].style.width = '100%';
+
+        // creating download for the plaintext
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(output_blob);
+        link.download = filename;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(link.href), 7000);
+    }
+</script>
+</body>
+</html>

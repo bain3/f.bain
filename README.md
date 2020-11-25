@@ -26,12 +26,13 @@ key derivation function. The result of this function will be a 768 bit key.
 We split this 768 bit key into three 256 bit parts which we will be using as our key, iv and filename iv.
 
 Next up is encrypting the file using [AES in GCM mode][aesgcm]. Since we want to support bigger files, we
-split it into blocks of 5 megabytes and generate new ivs for the next block, which we add to the start of the
-previous one.
+split it into blocks of 5 megabytes, and generate new ivs for every new block, which we add to the start 
+of the previous block.
 ```
 [iv1][data (encrypted using og iv)][tag]
 [iv2][data (encrypted using iv1)  ][tag]
 [iv3][data (encrypted using iv2)  ][tag]
+...
 ```
 Each block will end up being `5242928` bytes long.
 All of this is periodically added to a blob to not make the browser crash. Unfortunately recreating
@@ -43,7 +44,7 @@ The last step is to encrypt the filename in AES-GCM with our last iv and encode 
 The encrypted file, filename and the salt is sent to the server, which then responds with a id.
 The browser constructs the final url locally.
 ```
-https://f.bain.cz/id#passowrd
+https://f.bain.cz/<id>#<password>
 ```
 
 Since the password is set as a fragment (after the `#`) it is not sent to the server when you request the file
@@ -54,15 +55,16 @@ back.
 
 Download is simpler than upload. First off the browser parses the url for the id and password.
 
-Using the id it gathers metadata about the file (the encrypted file name and the salt) from `/id/meta`. 
+Using the id it gathers metadata about the file (the encrypted file name and the salt) from `/<id>/meta`. 
 It then derives the 768 bit key from the password.
 
-After that the browser downloads the encrypted data (everything stored as a blob to prevent browser 
-crashing), and starts to decrypt the `5242928` byte long blocks. Each time splitting the block into 
-the next iv and decrypted data, setting the next iv, and storing the decrypted data into an output blob.
+After that the browser downloads the encrypted data (from `/<id>/raw`)(everything stored as a 
+blob to prevent browser crashing), and starts to decrypt the `5242928` byte long blocks. 
+Each time splitting the block into the next iv and decrypted data, setting the next iv, and 
+storing the decrypted data into an output blob.
 
 Then it quickly decrypts the file name, and creates a fake link element with it pointing to the output
-blob containing the decrypted data. At last it invokes a click on the element which makes the browser save 
+blob, containing the decrypted data. At last it invokes a click on the element which makes the browser save 
 the file.
 
 GGs if you actually read all of it!

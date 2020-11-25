@@ -12,8 +12,8 @@ Deploying this website isn't very complicated.
 5. Install nginx and set it up to reverse proxy anything that hasn't been found in `static`. You can find
    countless tutorials online on how to do this.
    
-### How does it work?
-#### Upload
+## How does it work?
+### Upload
 Once the user selects a file, the javascript will generate a random custom base73 string as a password.
 The custom base73 format makes it so the urls are as dense as possible without sacrificing security.
 It will also generate "salt" for the PBKDF2 key derivation function. This salt will be later sent to
@@ -41,7 +41,7 @@ help me improve the file handling, contact me on discord `bain#5038` (or on [key
 
 The last step is to encrypt the filename in AES-GCM with our last iv and encode it in base64.
 
-The encrypted file, filename and the salt is sent to the server, which then responds with a id.
+The encrypted file, filename and the salt is sent to the server, which then responds with an id.
 The browser constructs the final url locally.
 ```
 https://f.bain.cz/<id>#<password>

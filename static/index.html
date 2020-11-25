@@ -53,18 +53,40 @@
             height: 0.5em;
             width: 0;
         }
+
         @keyframes slidein {
-            0% {top:-20px;}
-            15% {top: 7px;}
-            85% {top: 7px;}
-            100% {top:-25px;}
+            0% {
+                top: -20px;
+            }
+            15% {
+                top: 7px;
+            }
+            85% {
+                top: 7px;
+            }
+            100% {
+                top: -25px;
+            }
         }
+
         #copied-box {
             position: absolute;
-            left:50%;
+            left: 50%;
             transform: translateX(-50%);
             animation: 2.5s slidein ease-out forwards;
             color: #fefefe;
+        }
+
+        a {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: small;
+            text-decoration: none;
+            color: #7f7f7f;
+            text-align: center;
+            z-index: 20;
         }
     </style>
 </head>
@@ -85,10 +107,12 @@
         <div class="progress-value"></div>
     </div>
     <p id="success" hidden onclick="copyToClipboard();">
-        https://f.bain.cz/<span id="uuid" style="color: #fefefe">asdf</span>#<span id="key" style="color: #fefefe">asdf</span>
+        https://f.bain.cz/<span id="uuid" style="color: #fefefe">asdf</span>#<span id="key"
+                                                                                   style="color: #fefefe">asdf</span>
     </p>
     <p id="errors" hidden></p>
 
 </div>
+<a href="https://github.com/bain3/f.bain#how-does-it-work">How does it work?</a>
 </body>
 </html>

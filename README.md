@@ -42,9 +42,7 @@ of the previous block.
 ...
 ```
 Each block will end up being `5242928` bytes long.
-All of this is periodically added to a blob to not make the browser crash. Unfortunately recreating
-a blob is very time consuming, so the whole encryption process isn't very fast. If someone is willing to
-help me improve the file handling, contact me on discord `bain#5038` (or on [keybase][kb]).
+All of this is periodically added to a blob to not make the browser crash, and is the longest part.
 
 The last step is to encrypt the filename in AES-GCM with our last iv and encode it in base64.
 

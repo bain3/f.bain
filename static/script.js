@@ -73,8 +73,6 @@ async function encrypt(file) {
         // encryption of the block using aes in gcm mode
         let cipher = sjcl.mode.gcm.encrypt(prp, sjcl.codec.arrayBuffer.toBits(block.buffer), iv);
 
-        // this takes a shit ton of time, sadly can't do anything about that
-        // (please help if you know how to work around this issue)
         output_blob = new Blob([output_blob, sjcl.codec.arrayBuffer.fromBits(cipher, false)]);
 
         offset += 5242880;
@@ -131,7 +129,7 @@ async function sendRequest(file) {
         document.getElementsByClassName('progress-value')[0].style.width = 50+(p.loaded/p.total*86)+'%';
     })
 
-    xhr.open("POST", "http://localhost:3333/");
+    xhr.open("POST", "http://localhost:3333/n");
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
 
     // setting metadata header to send salt and file name encoded in json, then in base64

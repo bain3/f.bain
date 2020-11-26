@@ -140,8 +140,6 @@
                 let decrypt = sjcl.mode.gcm.decrypt(prp, sjcl.codec.arrayBuffer.toBits(block), iv);
                 let d_block = sjcl.codec.arrayBuffer.fromBits(decrypt, false);
 
-                // adding decrypted data to output blob (also takes a shitton of time,
-                // pls help if you have a better solution)
                 output_blob = new Blob([output_blob, d_block.slice(32, d_block.byteLength)]);
 
                 // setting next iv

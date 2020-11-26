@@ -20,7 +20,7 @@ redis.set("initial", "something")
 app = FastAPI()
 
 
-@app.post("/")
+@app.post("/n")
 async def create_file(request: Request, x_metadata: str = Header("")):
     try:
         if not x_metadata:

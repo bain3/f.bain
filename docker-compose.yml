@@ -10,3 +10,5 @@ services:
       - "./mount:/mount"
   redis:
     image: "redis:alpine"
+    volumes:
+    - "./redis_db:/data"

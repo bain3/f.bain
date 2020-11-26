@@ -24,8 +24,8 @@
 
         .center {
             position: absolute;
-            top: 50%;
             left: 50%;
+            top: 50%;
             transform: translateX(-50%) translateY(-50%);
             margin: auto;
             text-align: center;
@@ -78,22 +78,16 @@
         }
 
         a {
-            position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
             font-size: small;
             text-decoration: none;
-            color: #7f7f7f;
-            text-align: center;
-            z-index: 20;
+            color: #bfbfbf;
         }
     </style>
 </head>
 <body id="main">
 <div id="copied-box" hidden="">Copied!</div>
-<input type="file" ondrop="dropHandler(event);" id="inp" onchange="inputHandler(event);">
-<div class="center">
+<input type="file" ondrop="dropHandler(event);" id="inp" onchange="inputHandler(event);" title=" ">
+<div class="center" style="top: 50%;">
     <div id="upload-icon">
         <svg xmlns="http://www.w3.org/2000/svg" height="5em" viewBox="-53 1 511 511.999" width="5em"
              style="fill: #dadada">
@@ -107,12 +101,15 @@
         <div class="progress-value"></div>
     </div>
     <p id="success" hidden onclick="copyToClipboard();">
-        https://f.bain.cz/<span id="uuid" style="color: #fefefe">asdf</span>#<span id="key"
-                                                                                   style="color: #fefefe">asdf</span>
+        https://f.bain.cz/<span id="uuid" style="color: #fefefe"></span>#<span id="key" style="color: #fefefe"></span>
     </p>
     <p id="errors" hidden></p>
 
 </div>
-<a href="https://github.com/bain3/f.bain#how-does-it-work">How does it work?</a>
+<div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 20; text-align: center">
+    <p style="font-size: small;">End to end encrypted file sharing. Ignorance is bliss.</p>
+    <a href="https://github.com/bain3/f.bain#how-does-it-work" target="_blank">How does it work?</a>
+</div>
+
 </body>
 </html>

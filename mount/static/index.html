@@ -65,6 +65,12 @@
         let error_el = document.getElementById("errors");
         let progress_el = document.getElementsByClassName('progress')[0];
 
+        if (id_pair.length === 1 || id_pair[1] === "") {
+            error_el.innerText = "Link isn't correct. Could not find decryption key.";
+            error_el.hidden = false;
+            progress_el.style.visibility = 'hidden';
+            return;
+        }
         // -- request meta --
         let xhr = new XMLHttpRequest();
         let meta;
@@ -145,7 +151,7 @@
                 document.getElementsByClassName('progress-value')[0].style.width = 50+offset/raw.size*50+'%';
             }
         } catch (e) {
-            error_el.innerText = "Error while decrypting file.\n" + e;
+            error_el.innerText = "Error while decrypting file, this can be caused by an invalid decryption key.\n" + e;
             error_el.hidden = false;
             progress_el.style.visibility = 'hidden';
         }

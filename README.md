@@ -5,12 +5,13 @@ except for its size.
 ## Deployment
 Deploying this website isn't very complicated.
 1. Clone this repo
-2. Sdd folder "upload" here `mount/upload`
+2. Create folders so these paths are valid: `mount/upload` and `redis_db`
 3. Use docker-compose to build and run the api
 4. Change all of the links in the javascript (`static/script.js`, `mount/static/index.html`) to your
    website
 5. Install nginx and set it up to reverse proxy anything that hasn't been found in `static`. You can find
    countless tutorials online on how to do this.
+6. HTTPS isn't *really* needed, but I recommend setting it up nonetheless.
    
 ## How does it work?
 ### Short description

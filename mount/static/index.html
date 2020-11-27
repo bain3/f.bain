@@ -46,7 +46,7 @@
             100% {top:-25px;}
         }
     </style>
-    <script src="https://f.bain.cz/sjcl.js"></script>
+    <script src="/sjcl.js"></script>
 </head>
 <body onload="ol()">
 <div class="center">
@@ -86,7 +86,7 @@
                     resolve(true);
                 }
             });
-            xhr.open("GET", "http://localhost:3333/" + id_pair[0] + "/meta");
+            xhr.open("GET", "/" + id_pair[0] + "/meta");
             xhr.send();
         });
         await promise;
@@ -111,7 +111,7 @@
             xhr.addEventListener("progress", function (p) {
                 document.getElementsByClassName('progress-value')[0].style.width = 5+p.loaded/p.total*45+'%';
             })
-            xhr.open("GET", "http://localhost:3333/" + id_pair[0] + "/raw");
+            xhr.open("GET", "/" + id_pair[0] + "/raw");
             xhr.responseType = "blob";
             xhr.send();
         });

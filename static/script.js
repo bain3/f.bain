@@ -1,6 +1,24 @@
 // all available characters in a url
 let base73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),";
 let strength = 12;
+let host = "https://f.bain.cz/";
+
+// from @mrkelvinli on github, pathing Blob.arrayBuffer for safari.
+(function () {
+  File.prototype.arrayBuffer = File.prototype.arrayBuffer || myArrayBuffer;
+  Blob.prototype.arrayBuffer = Blob.prototype.arrayBuffer || myArrayBuffer;
+
+  function myArrayBuffer() {
+    // this: File or Blob
+    return new Promise((resolve) => {
+      let fr = new FileReader();
+      fr.onload = () => {
+        resolve(fr.result);
+      };
+      fr.readAsArrayBuffer(this);
+    })
+  }
+})();
 
 function inputHandler(ev) {
     ev.preventDefault();
@@ -111,10 +129,10 @@ async function sendRequest(file) {
         if (this.readyState === this.DONE) {
             if (this.status === 200) {
                 let json = JSON.parse(this.responseText);
-                uuid_el.innerText = json.uuid;
-                key_el.innerText = encrypted.key;
+                success_el.innerHTML = `${host}<span style="color: #fefefe">${json.uuid}#${encrypted.key}</span>`;
                 upload_icon.hidden = true;
                 success_el.hidden = false;
+                window.history.pushState("", "", host+json.uuid+'#'+encrypted.key);
             } else {
                 error_el.innerText = "Failed to upload. (status:" + this.status + ")";
                 upload_icon.hidden = true;
@@ -129,7 +147,7 @@ async function sendRequest(file) {
         document.getElementsByClassName('progress-value')[0].style.width = 50+(p.loaded/p.total*86)+'%';
     })
 
-    xhr.open("POST", "http://localhost:3333/n");
+    xhr.open("POST", "/n");
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
 
     // setting metadata header to send salt and file name encoded in json, then in base64

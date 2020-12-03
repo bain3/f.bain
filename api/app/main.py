@@ -5,8 +5,7 @@ import binascii
 from random import choice
 
 from fastapi import FastAPI, HTTPException, Body, Header, Request
-from starlette.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, Response, RedirectResponse
 import aiofiles
 import os
 import redis as redis_
@@ -14,7 +13,6 @@ from .CONSTANTS import REDIS
 import json
 from base64 import b64decode, b64encode
 from secrets import token_bytes
-from starlette.staticfiles import StaticFiles
 
 redis = redis_.Redis(host=REDIS['host'], port=REDIS['port'], db=REDIS['db'], password=REDIS['password'])
 redis.set("initial", "something")
@@ -49,11 +47,11 @@ async def get_file(uuid: str):
     meta = redis.get("metadata-" + uuid)
     if not meta:
         print("meta not found")
-        raise HTTPException(status_code=404, detail="File was not found.")
+        raise RedirectResponse("/404.html")
     if not os.path.exists("/mount/upload/" + uuid.encode().hex()):
         print("file not found")
         redis.delete("metadata-" + uuid)
-        raise HTTPException(status_code=404, detail="File was not found.")
+        raise RedirectResponse("/404.html")
     async with aiofiles.open("/mount/static/index.html", 'r') as f:
         return HTMLResponse(await f.read())
 

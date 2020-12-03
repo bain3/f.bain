@@ -20,7 +20,7 @@ redis = redis_.Redis(host=REDIS['host'], port=REDIS['port'], db=REDIS['db'], pas
 redis.set("initial", "something")
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="/static/", html=True))
+# app.mount("/static", StaticFiles(directory="/static/", html=True))
 
 @app.post("/n")
 async def create_file(request: Request, x_metadata: str = Header("")):

@@ -47,11 +47,11 @@ async def get_file(uuid: str):
     meta = redis.get("metadata-" + uuid)
     if not meta:
         print("meta not found")
-        raise RedirectResponse("/404.html")
+        return RedirectResponse("/404.html")
     if not os.path.exists("/mount/upload/" + uuid.encode().hex()):
         print("file not found")
         redis.delete("metadata-" + uuid)
-        raise RedirectResponse("/404.html")
+        return RedirectResponse("/404.html")
     async with aiofiles.open("/mount/static/index.html", 'r') as f:
         return HTMLResponse(await f.read())
 

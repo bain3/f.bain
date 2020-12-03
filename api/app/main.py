@@ -12,13 +12,15 @@ import os
 import redis as redis_
 from .CONSTANTS import REDIS
 import json
-from base64 import b64decode
+from base64 import b64decode, b64encode
+from secrets import token_bytes
+from starlette.staticfiles import StaticFiles
 
 redis = redis_.Redis(host=REDIS['host'], port=REDIS['port'], db=REDIS['db'], password=REDIS['password'])
 redis.set("initial", "something")
 
 app = FastAPI()
-
+app.mount("/static", StaticFiles(directory="/static/", html=True))
 
 @app.post("/n")
 async def create_file(request: Request, x_metadata: str = Header("")):
@@ -35,9 +37,11 @@ async def create_file(request: Request, x_metadata: str = Header("")):
                         range(5)])
     print(metadata)
     redis.set("metadata-" + uuid, metadata)
+    revocation_token = b64encode(token_bytes(18))
+    redis.set("revocation-" + uuid, revocation_token)
     async with aiofiles.open("/mount/upload/" + uuid.encode().hex(), 'wb+') as f:
         await f.write(await request.body())
-    return {"uuid": uuid}
+    return {"uuid": uuid, "revocation_token": revocation_token}
 
 
 @app.get("/{uuid}")
@@ -80,3 +84,21 @@ async def get_raw(uuid: str):
         raise HTTPException(status_code=404, detail="File was not found.")
     async with aiofiles.open("/mount/upload/" + uuid.encode().hex(), 'rb') as f:
         return Response(await f.read(), media_type="application/octet-stream", status_code=200)
+
+
+@app.delete("/{uuid}")
+async def delete_file(uuid: str, body: dict = Body({"revocation_token": ""})):
+    if not redis.exists("revocation-"+uuid):
+        raise HTTPException(status_code=404)
+
+    if redis.get("revocation-"+uuid).decode() != body.get("revocation_token", ""):
+        raise HTTPException(status_code=401, detail="ID and token combination is invalid.")
+
+    redis.delete("revocation-"+uuid, "metadata-"+uuid)
+
+    path = "/mount/upload/"+uuid.encode().hex()
+    if path == "/mount/upload/":
+        raise HTTPException(status_code=400, detail="no.")
+    os.remove(path)
+
+    return {"status": "ok"}

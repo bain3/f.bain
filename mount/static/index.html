@@ -61,7 +61,8 @@
         /*
         I am sorry that this code is a mess. I'll refactor later (lol).
          */
-        let id_pair = location.href.substring(location.href.lastIndexOf('/') + 1).split("#");
+        let url = new URL(location.href);
+        let id_pair = [url.pathname.substring(url.pathname.lastIndexOf('/')+1), url.hash.substring(1)];
         let error_el = document.getElementById("errors");
         let progress_el = document.getElementsByClassName('progress')[0];
 

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>f.bain - revoke</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #13131b;
+            font-family: 'Nunito Sans', sans-serif;
+            color: #7f7f7f;
+        }
+
+        .center {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            margin: auto;
+            text-align: center;
+        }
+
+        a {
+            font-size: small;
+            text-decoration: none;
+            color: #bfbfbf;
+        }
+
+        input[type=text] {
+            text-align: center;
+            width: 100%;
+            max-width: 30em;
+            background: #2A2A3C;
+            border-style:none;
+            padding: 0.5em;
+            color: white;
+            display: block;
+            margin: 1em auto;
+        }
+
+        button {
+            background: #DB324D;
+            color: white;
+            border: none;
+            padding: 5px 30px;
+            border-radius: 30px;
+        }
+
+        b {
+            color: #bfbfbf;
+        }
+
+        #errors {
+            color: #DB324D;
+        }
+    </style>
+</head>
+<body id="main">
+<div class="center" style="top: 50%;">
+    <h3 style="color: white;">Revoke a file</h3>
+    <p>
+        You can choose between multiple forms of input. The whole link to the file, or just the 5 character id which is located after the last slash. You can find the link structure below. <b>The revocation token will be automatically filled in if it was found in the browser.</b>
+    </p>
+    <input id="urlinput" type="text" placeholder="https://f.bain.cz/<id>(#<key>)" oninput="findRt(this.value);"/>
+    <input id="rtinput" type="text" placeholder="Revocation token"/>
+    <button onclick="revokeFile();" id="btn">Revoke</button>
+    <p id="errors" hidden></p>
+    <script src="revocation-script.js"></script>
+</div>
+</body>
+</html>

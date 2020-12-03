@@ -9,7 +9,7 @@ Deploying this website isn't very complicated.
 3. Use docker-compose to build and run the api
 4. Install nginx and set it up to reverse proxy anything that isn't found in `static`. You can find
    countless tutorials online on how to do this.
-5. HTTPS isn't *really* needed to keep the files safe, but I recommend setting it up nonetheless.
+5. Set up HTTPS for basic security.
    
 ## How does it work?
 ### Short description

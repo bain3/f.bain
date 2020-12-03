@@ -8,7 +8,6 @@ services:
       - redis
     volumes:
       - "./mount:/mount"
-      - "./static:/static"
   redis:
     image: "redis:alpine"
     volumes:

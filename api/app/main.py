@@ -13,6 +13,7 @@ from .CONSTANTS import REDIS
 import json
 from base64 import b64decode, b64encode
 from secrets import token_bytes
+# from starlette.staticfiles import StaticFiles
 
 redis = redis_.Redis(host=REDIS['host'], port=REDIS['port'], db=REDIS['db'], password=REDIS['password'])
 redis.set("initial", "something")

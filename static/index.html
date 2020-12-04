@@ -107,13 +107,14 @@
         https://f.bain.cz/nothing
     </p>
     <div id="revocation-div" style="border-top:1px solid gray;" hidden>
-        <p style="margin-bottom: 0;">Your revocation token is:<br>
+
+        <input type="checkbox" id="store-rt" oninput="storeRevocationToken(this.checked)" style="margin-top: 1em"/>
+        <label for="store-rt" style="transform: translate(0, -50%); position: relative;">store revocation token in this browser</label>
+        <p style="font-size: x-small; margin-top: 0;">(you won't be able to delete the file without it)</p>
+        <p style="margin-bottom: 0;" id="rt-show" hidden>Your revocation token is:<br>
             <span id="revocation-token" style="color: #fefefe; cursor: copy;" onclick="copyToClipboard(this)"></span>
         </p>
-        <p style="font-size: x-small; margin-top: 0;">(you won't be able to delete the file without it)</p>
-        <input type="checkbox" id="store-rt" oninput="storeRevocationToken(this.checked)"/>
-        <label for="store-rt" style="transform: translate(0, -50%); position: relative;">store revocation token in this browser</label>
-        <p style="font-size: x-small; margin-top: 0;">(this browser can see that you uploaded this file, and can revoke it)</p>
+
     </div>
     <p id="errors" hidden></p>
 

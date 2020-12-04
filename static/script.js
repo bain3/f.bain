@@ -168,7 +168,9 @@ function showRevocationDiv() {
     let rt = document.getElementById('revocation-token');
     div.hidden = false;
     rt.innerText = response.revocation_token;
-    if (window.localStorage.getItem("s") === "yes") {
+    let s = window.localStorage.getItem("s");
+    if (s === null) {window.localStorage.setItem("s", "yes"); s="yes"}
+    if (s === "yes") {
         document.getElementById("store-rt").checked = true;
         storeRevocationToken(true);
     }
@@ -176,7 +178,13 @@ function showRevocationDiv() {
 
 async function storeRevocationToken(v) {
     console.log(v);
-    if (v) window.localStorage.setItem("revocation-"+encodeURI(response.uuid), response.revocation_token);
-    else window.localStorage.removeItem("revocation-"+encodeURI(response.uuid));
+    if (v) {
+        window.localStorage.setItem("revocation-"+encodeURI(response.uuid), response.revocation_token);
+        document.getElementById("rt-show").hidden = true;
+    }
+    else {
+        window.localStorage.removeItem("revocation-"+encodeURI(response.uuid));
+        document.getElementById("rt-show").hidden = false;
+    }
     window.localStorage.setItem("s", v ? "yes" : "no");
 }

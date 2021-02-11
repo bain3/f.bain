@@ -1,5 +1,5 @@
 // all available characters in a url
-let base73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),";
+let base73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*'(),";
 let strength = 12;
 let host = "https://f.bain.cz/";
 let response = "";

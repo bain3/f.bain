@@ -4,3 +4,4 @@ REDIS = {
     "db": 0,
     "password": None
 }
+STATUS_TOKEN = ""

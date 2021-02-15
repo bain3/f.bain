@@ -1,7 +1,7 @@
 // all available characters in a url
 let base73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*'(),";
 let strength = 12;
-let host = "https://f.bain.cz/";
+let host = window.location.host;
 let response = "";
 
 // from @mrkelvinli on github, pathing Blob.arrayBuffer for safari.
@@ -124,10 +124,10 @@ async function sendRequest(file) {
         if (this.readyState === this.DONE) {
             if (this.status === 200) {
                 let json = JSON.parse(this.responseText);
-                success_el.innerHTML = `${host}<span style="color: #fefefe">${json.uuid}#${encrypted.key}</span>`;
+                success_el.innerHTML = `https://${host}/<span style="color: #fefefe">${json.uuid}#${encrypted.key}</span>`;
                 upload_icon.hidden = true;
                 success_el.hidden = false;
-                window.history.pushState("", "", host + json.uuid + '#' + encrypted.key);
+                window.history.pushState("", "", "https://" + host + "/" + json.uuid + '#' + encrypted.key);
                 response = json;
                 showRevocationDiv();
             } else {
@@ -144,7 +144,7 @@ async function sendRequest(file) {
         document.getElementsByClassName('progress-value')[0].style.width = 50 + (p.loaded / p.total * 86) + '%';
     })
 
-    xhr.open("POST", "/n");
+    xhr.open("POST", "/new");
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
 
     // setting metadata header to send salt and file name encoded in json, then in base64

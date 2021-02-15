@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException, Body, Header, Request
 from fastapi.responses import HTMLResponse, Response, RedirectResponse
 import aiofiles
 import redis as redis_
-from starlette.staticfiles import StaticFiles
+# from starlette.staticfiles import StaticFiles
 
 from . import CONSTANTS
 
@@ -24,7 +24,7 @@ redis = redis_.Redis(host=CONSTANTS.REDIS['host'],
 redis.set("initial", "something")
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="/static/", html=True))
+# app.mount("/static", StaticFiles(directory="/static/", html=True))
 
 worker_start_time = time()
 

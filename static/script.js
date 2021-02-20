@@ -28,10 +28,7 @@ function inputHandler(ev) {
 }
 
 function dropHandler(ev) {
-
-    // Prevent default behavior (Prevent file from being opened)
     ev.preventDefault();
-
     let toSend;
     if (ev.dataTransfer.items) {
         let file = ev.dataTransfer.items[0].getAsFile();
@@ -39,12 +36,13 @@ function dropHandler(ev) {
     } else {
         toSend = ev.dataTransfer.files[0];
     }
-
     sendRequest(toSend);
 }
 
 function random_chars(number) {
-    let array = sjcl.random.randomWords(number, 0);
+    let array = new Uint8Array(number);
+    let cryptoObj = window.crypto || window.msCrypto;
+    cryptoObj.getRandomValues(array);
     let output = "";
     for (let i = 0; i < array.length; i++) {
         output += base73[Math.abs(array[i] % 73)];
@@ -60,33 +58,58 @@ async function encrypt(file) {
         password = random_chars(strength);
     } while ([".", ",", ")"].includes(password[password.length - 1])); // last character cannot be ) , or ., discord doesn't like it
 
-    // password stretching to 512 bits and strengthening
-    let salt = sjcl.random.randomWords(2, 0);
-    let strengthened = sjcl.misc.pbkdf2(password, salt, 50000, 768);
+    // get crypto objects
+    let cryptoObj = window.crypto || window.msCrypto; // for IE 11
+    let crypto = cryptoObj.subtle;
 
-    // create aes instance using our generated key (first 256 bits)
-    let prp = new sjcl.cipher.aes(strengthened.splice(0, 8));
-
-    let iv = strengthened.splice(0, 8); // setting iv (second 256 bits)
+    // password and salt generation
+    let te = new TextEncoder();
+    let salt = new Uint8Array(32);
+    cryptoObj.getRandomValues(salt);
+    let wc_pass = await crypto.importKey(
+        "raw",
+        te.encode(password),
+        "PBKDF2",
+        false,
+        ["deriveBits"]
+    );
+    let strengthened = await crypto.deriveBits(
+        {name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: 50000},
+        wc_pass,
+        768
+    );
+    let key = await crypto.importKey(
+        "raw",
+        strengthened.slice(0, 32),
+        "AES-GCM",
+        false,
+        ["encrypt"]
+    );
+    let iv = strengthened.slice(32, 64); // setting iv (second 256 bits)
+    let name_iv = strengthened.slice(64, 96); // using third 256 bits of our stretched key
 
     let output_blob = new Blob([]); // preparing output blob, needs to be blob to not crash the browser
     let offset = 0;
     while (offset < file.size) {
         // getting a block of data (5mb)
-        let block_data = new Int8Array(await file.slice(offset, offset + 5242880).arrayBuffer());
-        // getting iv IN THE RIGHT FORM, UGHHH
-        let new_iv = sjcl.random.randomWords(8, 0);
-        let new_iv_int8 = new Int8Array(new Int32Array(new_iv).buffer);
+        let block_data = new Uint8Array(await file.slice(offset, offset + 5242880).arrayBuffer());
+
+        // generating new iv
+        let new_iv = new Uint8Array(32);
+        cryptoObj.getRandomValues(new_iv);
 
         // concatenating iv and data into the same block
-        let block = new Int8Array(new_iv_int8.byteLength + block_data.byteLength);
-        block.set(new_iv_int8, 0);
-        block.set(block_data, new_iv_int8.byteLength);
+        let block = new Uint8Array(new_iv.byteLength + block_data.byteLength);
+        block.set(new_iv, 0);
+        block.set(block_data, 32);
 
         // encryption of the block using aes in gcm mode
-        let cipher = sjcl.mode.gcm.encrypt(prp, sjcl.codec.arrayBuffer.toBits(block.buffer), iv);
-
-        output_blob = new Blob([output_blob, sjcl.codec.arrayBuffer.fromBits(cipher, false)]);
+        let cipher = await crypto.encrypt(
+            {name: "AES-GCM", iv: iv, tagLength: 128},
+            key,
+            block
+        )
+        output_blob = new Blob([output_blob, cipher]);
 
         offset += 5242880;
         iv = new_iv; // changing the iv for the next block to not weaken the encryption
@@ -94,11 +117,17 @@ async function encrypt(file) {
     }
 
     // encrypt filename
-    let name_iv = strengthened.splice(0, 8); // using third 256 bits of our stretched key
-    let enc_bits = sjcl.mode.gcm.encrypt(prp, sjcl.codec.utf8String.toBits(file.name), name_iv);
-    let filename = sjcl.codec.base64.fromBits(enc_bits, false);
-
-    return {output_blob, key: password, salt, filename}
+    let enc_bytes = await crypto.encrypt(
+        {name: "AES-GCM", iv: name_iv, tagLength: 128},
+        key,
+        te.encode(file.name)
+    );
+    // convert filename to base64
+    let filename = btoa(
+        new Uint8Array(enc_bytes)
+            .reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    return {output_blob, key: password, salt: Array.from(salt), filename}
 }
 
 async function sendRequest(file) {

@@ -206,7 +206,6 @@ function showRevocationDiv() {
 }
 
 async function storeRevocationToken(v) {
-    console.log(v);
     if (v) {
         window.localStorage.setItem("revocation-"+encodeURI(response.uuid), response.revocation_token);
         document.getElementById("rt-show").hidden = true;

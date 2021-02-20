@@ -147,7 +147,6 @@
 
         // -- decrypt filename --
         let b64 = atob(meta.filename);
-        console.log(b64);
         let len = b64.length;
         let bytes = new Uint8Array( len );
         for (let i = 0; i < len; i++)        {
@@ -178,7 +177,6 @@
                 let d_block = await crypto.decrypt(
                     {"name": "AES-GCM", "iv": iv, "tagLength": 128},
                     wc_key, block);
-                console.log(d_block);
                 // let decrypt = sjcl.mode.gcm.decrypt(prp, sjcl.codec.arrayBuffer.toBits(block), iv);
                 // let d_block = sjcl.codec.arrayBuffer.fromBits(decrypt, false);
 

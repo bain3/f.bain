@@ -22,6 +22,8 @@ redis = redis_.Redis(host=CONSTANTS.REDIS['host'],
                      db=CONSTANTS.REDIS['db'],
                      password=CONSTANTS.REDIS['password'])
 redis.set("initial", "something")
+if not redis.exists("count"):
+    redis.set("count", 0)
 
 app = FastAPI()
 # app.mount("/static", StaticFiles(directory="/static/", html=True))

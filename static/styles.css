@@ -85,10 +85,4 @@ a {
     pointer-events: all;
     touch-action: auto;
     width: 20em;
-    opacity: 0.1;
-    transition: opacity ease-in-out 0.2s;
-}
-
-.slider:hover {
-    opacity: 100;
 }

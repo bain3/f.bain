@@ -18,12 +18,17 @@
             <path d="M305.102 401.934H101.539c-6.8 0-12.367 5.562-12.367 12.367 0 6.8 5.566 12.367 12.367 12.367h203.688c6.8 0 12.367-5.566 12.367-12.367 0-6.805-5.567-12.367-12.492-12.367zm0 0M140 268.863l50.953-54.789v135.051c0 6.8 5.567 12.367 12.367 12.367 6.805 0 12.368-5.566 12.368-12.367v-135.05l50.953 54.788c2.472 2.594 5.691 3.957 9.027 3.957 2.969 0 6.062-1.113 8.41-3.34 4.95-4.699 5.32-12.492.621-17.437l-72.472-77.79c-2.352-2.472-5.567-3.956-9.028-3.956-3.465 0-6.68 1.484-9.027 3.957l-72.473 77.789c-4.699 4.945-4.328 12.86.617 17.437 5.196 4.7 12.985 4.329 17.684-.617zm0 0"/>
         </svg>
         <p style="margin-bottom: 0.4em;">Click or drag n' drop to upload.</p>
-        <p style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5">key strength</p>
+        <p
+            style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5; cursor: pointer; pointer-events: all;
+                   touch-action: auto;"
+            onclick="document.getElementsByClassName('slider')[0].hidden = false;"
+        >key strength</p>
         <input
                 type="range"
                 min="0" max="24" value="12"
                 class="slider"
                 onchange="strength=Math.max(parseInt(this.value, 10), 8);"
+                hidden
         />
     </div>
 

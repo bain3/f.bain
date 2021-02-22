@@ -1,0 +1,94 @@
+body {
+    background-color: #13131b;
+    font-family: 'Nunito Sans', sans-serif;
+    color: #7f7f7f;
+}
+
+#inp {
+    opacity: 0;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: auto;
+    text-align: center;
+}
+
+.click-through {
+    pointer-events: none;
+    touch-action: none;
+}
+
+.progress {
+    background: rgba(255, 255, 255, 0.1);
+    justify-content: flex-start;
+    border-radius: 100px;
+    align-items: center;
+    position: relative;
+    padding: 0 5px;
+    display: flex;
+    height: 1em;
+    width: 300px;
+    visibility: hidden;
+    margin: auto;
+}
+
+.progress-value {
+    transition: width ease-in-out 100ms;
+    box-shadow: 0 10px 40px -10px #fff;
+    border-radius: 100px;
+    background: #fff;
+    height: 0.5em;
+    width: 0;
+}
+
+@keyframes slidein {
+    0% {
+        top: -20px;
+    }
+    15% {
+        top: 7px;
+    }
+    85% {
+        top: 7px;
+    }
+    100% {
+        top: -25px;
+    }
+}
+
+#copied-box {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: 2.5s slidein ease-out forwards;
+    color: #fefefe;
+}
+
+a {
+    font-size: small;
+    text-decoration: none;
+    color: #bfbfbf;
+}
+#success {
+    cursor: copy;
+}
+
+.slider {
+    pointer-events: all;
+    touch-action: auto;
+    width: 20em;
+    opacity: 0.1;
+    transition: opacity ease-in-out 0.2s;
+}
+
+.slider:hover {
+    opacity: 100;
+}

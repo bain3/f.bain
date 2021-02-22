@@ -132,6 +132,7 @@ async function encrypt(file) {
 
 async function sendRequest(file) {
 
+    document.getElementsByClassName('center')[0].classList.remove('click-through');
     let error_el = document.getElementById('errors');
     let success_el = document.getElementById('success');
     let upload_icon = document.getElementById('upload-icon');

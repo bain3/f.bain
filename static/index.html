@@ -5,98 +5,26 @@
     <title>f.bain</title>
     <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="script.js"></script>
-    <style>
-        body {
-            background-color: #13131b;
-            font-family: 'Nunito Sans', sans-serif;
-            color: #7f7f7f;
-        }
-
-        #inp {
-            opacity: 0;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 10;
-        }
-
-        .center {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            margin: auto;
-            text-align: center;
-        }
-
-        .progress {
-            margin-top: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            justify-content: flex-start;
-            border-radius: 100px;
-            align-items: center;
-            position: relative;
-            padding: 0 5px;
-            display: flex;
-            height: 1em;
-            width: 300px;
-            visibility: hidden;
-        }
-
-        .progress-value {
-            transition: width ease-in-out 100ms;
-            box-shadow: 0 10px 40px -10px #fff;
-            border-radius: 100px;
-            background: #fff;
-            height: 0.5em;
-            width: 0;
-        }
-
-        @keyframes slidein {
-            0% {
-                top: -20px;
-            }
-            15% {
-                top: 7px;
-            }
-            85% {
-                top: 7px;
-            }
-            100% {
-                top: -25px;
-            }
-        }
-
-        #copied-box {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: 2.5s slidein ease-out forwards;
-            color: #fefefe;
-        }
-
-        a {
-            font-size: small;
-            text-decoration: none;
-            color: #bfbfbf;
-        }
-        #success {
-             cursor: copy;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div id="copied-box" hidden="">Copied!</div>
 <input type="file" ondrop="dropHandler(event);" id="inp" onchange="inputHandler(event);" title=" ">
-<div class="center">
+<div class="center click-through">
     <div id="upload-icon">
         <svg xmlns="http://www.w3.org/2000/svg" height="5em" viewBox="-53 1 511 511.999" width="5em"
              style="fill: #dadada">
             <path d="M276.41 3.957C274.062 1.484 270.844 0 267.508 0H67.778C30.921 0 .5 30.3.5 67.152v377.692C.5 481.699 30.922 512 67.777 512h271.086c36.856 0 67.278-30.3 67.278-67.156V144.94c0-3.214-1.485-6.304-3.586-8.656zm3.586 39.7l84.469 88.671h-54.91c-16.325 0-29.559-13.11-29.559-29.433zm58.867 443.609H67.777c-23.125 0-42.543-19.168-42.543-42.422V67.152c0-23.125 19.293-42.418 42.543-42.418h187.485v78.16c0 30.051 24.242 54.168 54.293 54.168h71.851v287.782c0 23.254-19.293 42.422-42.543 42.422zm0 0"/>
             <path d="M305.102 401.934H101.539c-6.8 0-12.367 5.562-12.367 12.367 0 6.8 5.566 12.367 12.367 12.367h203.688c6.8 0 12.367-5.566 12.367-12.367 0-6.805-5.567-12.367-12.492-12.367zm0 0M140 268.863l50.953-54.789v135.051c0 6.8 5.567 12.367 12.367 12.367 6.805 0 12.368-5.566 12.368-12.367v-135.05l50.953 54.788c2.472 2.594 5.691 3.957 9.027 3.957 2.969 0 6.062-1.113 8.41-3.34 4.95-4.699 5.32-12.492.621-17.437l-72.472-77.79c-2.352-2.472-5.567-3.956-9.028-3.956-3.465 0-6.68 1.484-9.027 3.957l-72.473 77.789c-4.699 4.945-4.328 12.86.617 17.437 5.196 4.7 12.985 4.329 17.684-.617zm0 0"/>
         </svg>
-        <p>Click or drag n' drop to upload.</p>
+        <p style="margin-bottom: 0.4em;">Click or drag n' drop to upload.</p>
+        <p style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5">key strength</p>
+        <input
+                type="range"
+                min="0" max="24" value="12"
+                class="slider"
+                onchange="strength=Math.max(parseInt(this.value, 10), 8);"
+        />
     </div>
 
     <div class="progress">
@@ -116,11 +44,10 @@
 
     </div>
     <p id="errors" hidden></p>
-
 </div>
 <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 20; text-align: center">
     <p style="font-size: small;">End to end encrypted file sharing. Ignorance is bliss.</p>
-    <p><a href="https://github.com/bain3/f.bain#how-does-it-work" target="_blank">How does it work?</a>, <a href="revoke.html" target="_blank">Revoke a file</a></p>
+    <p><a href="https://github.com/bain3/f.bain#how-does-it-work" target="_blank">How does it work?</a>, <a href="revoke.html" target="_blank"><b>Revoke a file</b></a></p>
 </div>
 
 </body>

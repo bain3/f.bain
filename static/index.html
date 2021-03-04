@@ -9,9 +9,9 @@
 </head>
 <body>
 <div id="copied-box" hidden="">Copied!</div>
-<input type="file" ondrop="dropHandler(event);" id="inp" onchange="inputHandler(event);" title=" ">
+<input type="file" ondrop="dropHandler(event);" id="inp" onchange="inputHandler(event);" title=" " autocomplete="off">
 <div class="center click-through">
-    <div id="upload-icon">
+    <div id="welcome-div">
         <svg xmlns="http://www.w3.org/2000/svg" height="5em" viewBox="-53 1 511 511.999" width="5em"
              style="fill: #dadada">
             <path d="M276.41 3.957C274.062 1.484 270.844 0 267.508 0H67.778C30.921 0 .5 30.3.5 67.152v377.692C.5 481.699 30.922 512 67.777 512h271.086c36.856 0 67.278-30.3 67.278-67.156V144.94c0-3.214-1.485-6.304-3.586-8.656zm3.586 39.7l84.469 88.671h-54.91c-16.325 0-29.559-13.11-29.559-29.433zm58.867 443.609H67.777c-23.125 0-42.543-19.168-42.543-42.422V67.152c0-23.125 19.293-42.418 42.543-42.418h187.485v78.16c0 30.051 24.242 54.168 54.293 54.168h71.851v287.782c0 23.254-19.293 42.422-42.543 42.422zm0 0"/>
@@ -21,32 +21,26 @@
         <p
             style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5; cursor: pointer; pointer-events: all;
                    touch-action: auto;"
-            onclick="document.getElementsByClassName('slider')[0].hidden = false;"
-        >key strength</p>
-        <input
-                type="range"
-                min="0" max="24" value="12"
-                class="slider"
-                onchange="strength=Math.max(parseInt(this.value, 10), 8);"
-                hidden
-        />
+        >key strength: <input type="number" id="strength-input" value="12" min="10" max="128" onchange="strength=parseInt(this.value, 10);"/></p>
     </div>
 
-    <div class="progress">
-        <div class="progress-value"></div>
+    <div id="progress-div" style="visibility: hidden;">
+        <div class="progress">
+            <div class="progress-value"></div>
+        </div>
+        <p id="status"></p>
     </div>
-    <p id="success" hidden onclick="copyToClipboard(this);">
-        https://f.bain.cz/nothing
-    </p>
-    <div id="revocation-div" style="border-top:1px solid gray;" hidden>
 
+    <div id="success-div" hidden>
+        <p id="success" onclick="copyToClipboard(this);">
+            https://f.bain.cz/nothing
+        </p>
         <input type="checkbox" id="store-rt" oninput="storeRevocationToken(this.checked)" style="margin-top: 1em"/>
         <label for="store-rt" style="transform: translate(0, -50%); position: relative;">store revocation token in this browser</label>
         <p style="font-size: x-small; margin-top: 0;">(you won't be able to delete the file without it)</p>
         <p style="margin-bottom: 0;" id="rt-show" hidden>Your revocation token is:<br>
             <span id="revocation-token" style="color: #fefefe; cursor: copy;" onclick="copyToClipboard(this)"></span>
         </p>
-
     </div>
     <p id="errors" hidden></p>
 </div>

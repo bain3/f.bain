@@ -1,7 +1,16 @@
+:root {
+    --bright: #fefefe;
+    --darker: #7f7f7f;
+    --even-darker: #21212f;
+    --dark: #13131b;
+    --red: #bf3b3b;
+    --green: #35c135;
+}
+
 body {
-    background-color: #13131b;
+    background-color: var(--dark);
     font-family: 'Nunito Sans', sans-serif;
-    color: #7f7f7f;
+    color: var(--darker);
 }
 
 #inp {
@@ -27,7 +36,7 @@ body {
 }
 
 .progress {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--even-darker);
     justify-content: flex-start;
     border-radius: 100px;
     align-items: center;
@@ -36,15 +45,14 @@ body {
     display: flex;
     height: 1em;
     width: 300px;
-    visibility: hidden;
     margin: auto;
 }
 
 .progress-value {
     transition: width ease-in-out 100ms;
-    box-shadow: 0 10px 40px -10px #fff;
+    box-shadow: 0 10px 40px -10px var(--bright);
     border-radius: 100px;
-    background: #fff;
+    background: var(--bright);
     height: 0.5em;
     width: 0;
 }
@@ -69,20 +77,22 @@ body {
     left: 50%;
     transform: translateX(-50%);
     animation: 2.5s slidein ease-out forwards;
-    color: #fefefe;
+    color: var(--bright);
 }
 
 a {
     font-size: small;
     text-decoration: none;
-    color: #bfbfbf;
+    color: var(--darker);
 }
 #success {
     cursor: copy;
 }
 
-.slider {
-    pointer-events: all;
-    touch-action: auto;
-    width: 20em;
+#strength-input {
+    width: 3em;
+    background: none;
+    border: none;
+    color: var(--bright);
 }
+

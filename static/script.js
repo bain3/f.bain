@@ -2,6 +2,7 @@
 let base73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*'(),";
 let strength = 12;
 let host = window.location.host;
+let max_file_size = 524280000; // 500MB on official f.bain. -8kb for leeway.
 let response = "";
 
 // from @mrkelvinli on github, pathing Blob.arrayBuffer for safari.
@@ -31,8 +32,7 @@ function dropHandler(ev) {
     ev.preventDefault();
     let toSend;
     if (ev.dataTransfer.items) {
-        let file = ev.dataTransfer.items[0].getAsFile();
-        toSend = file;
+        toSend = ev.dataTransfer.items[0].getAsFile();
     } else {
         toSend = ev.dataTransfer.files[0];
     }
@@ -50,8 +50,12 @@ function random_chars(number) {
     return output
 }
 
-async function encrypt(file) {
+async function encrypt(file, progress_bar) {
 
+    progress_bar.update({
+        status: "neutral",
+        statusText: "encrypting...",
+    })
     // generate random password in base73
     let password;
     do {
@@ -113,7 +117,9 @@ async function encrypt(file) {
 
         offset += 5242880;
         iv = new_iv; // changing the iv for the next block to not weaken the encryption
-        document.getElementsByClassName('progress-value')[0].style.width = offset / file.size * 50 + '%';
+        progress_bar.update({
+            progress: offset / file.size
+        })
     }
 
     // encrypt filename
@@ -132,19 +138,28 @@ async function encrypt(file) {
 
 async function sendRequest(file) {
 
+    // make center clickable, disable file input, hide welcome screen, and show progress information
     document.getElementsByClassName('center')[0].classList.remove('click-through');
-    let error_el = document.getElementById('errors');
-    let success_el = document.getElementById('success');
-    let upload_icon = document.getElementById('upload-icon');
-    let input_el = document.getElementById('inp');
-    let progress_el = document.getElementsByClassName('progress')[0];
-    input_el.disabled = true;
-    input_el.style.zIndex = '-1';
-    progress_el.style.visibility = 'initial';
+    document.getElementById('inp').disabled = true;
+    document.getElementById('welcome-div').hidden = true;
+    let progress_div = document.getElementById('progress-div');
+    let success_div = document.getElementById('success-div');
+    progress_div.style.visibility = 'initial';
+
+
+    let progress_bar = new Progress({status: "neutral", statusText: "", progress: 0});
+
+    if (file.size >= max_file_size) {
+        progress_bar.update({
+            status: "error",
+            statusText: "The file is too large (max 500MB)"
+        });
+        return;
+    }
 
     // encrypt the file
     let encrypted;
-    encrypted = await encrypt(file);
+    encrypted = await encrypt(file, progress_bar);
 
     // send post request with data and metadata
     const xhr = new XMLHttpRequest();
@@ -154,26 +169,38 @@ async function sendRequest(file) {
         if (this.readyState === this.DONE) {
             if (this.status === 200) {
                 let json = JSON.parse(this.responseText);
-                success_el.innerHTML = `https://${host}/<span style="color: #fefefe">${json.uuid}#${encrypted.key}</span>`;
-                upload_icon.hidden = true;
-                success_el.hidden = false;
+                progress_div.style.visibility = 'hidden';
+                progress_div.hidden = true;
+                document.getElementById('success').innerHTML =
+                    `https://${host}/<span style="color: var(--bright)">${json.uuid}#${encrypted.key}</span>`;
+                success_div.hidden = false;
                 window.history.pushState("", "", "https://" + host + "/" + json.uuid + '#' + encrypted.key);
                 response = json;
                 showRevocationDiv();
             } else {
-                error_el.innerText = "Failed to upload. (status:" + this.status + ")";
-                upload_icon.hidden = true;
-                error_el.hidden = false;
+                let status_messages = {
+                    413: "The file is too large.",
+                    429: "The server is dealing with too much traffic, please try again later."
+                }
+                progress_bar.update({
+                    status: "error",
+                    statusText: status_messages[this.status] || ("Server returned error code: " + this.status)
+                });
             }
-            progress_el.style.visibility = 'hidden';
         }
     });
 
     // update progress bar
     xhr.upload.addEventListener("progress", function (p) {
-        document.getElementsByClassName('progress-value')[0].style.width = 50 + (p.loaded / p.total * 86) + '%';
+        progress_bar.update({
+            progress: 0.5+(p.loaded/p.total)
+        });
     })
 
+    progress_bar.update({
+        status: "neutral",
+        statusText: "uploading..."
+    });
     xhr.open("POST", "/new");
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
 
@@ -194,9 +221,7 @@ function copyToClipboard(el) {
 }
 
 function showRevocationDiv() {
-    let div = document.getElementById('revocation-div');
     let rt = document.getElementById('revocation-token');
-    div.hidden = false;
     rt.innerText = response.revocation_token;
     let s = window.localStorage.getItem("s");
     if (s === null) {window.localStorage.setItem("s", "yes"); s="yes"}
@@ -216,4 +241,46 @@ async function storeRevocationToken(v) {
         document.getElementById("rt-show").hidden = false;
     }
     window.localStorage.setItem("s", v ? "yes" : "no");
+}
+
+class Progress {
+    constructor(status) {
+        this.progress_value = document.getElementsByClassName('progress-value')[0];
+        this.status_text = document.getElementById("status");
+        this.current_status = status;
+    }
+
+    update(status) {
+        for (let key of Object.keys(status)) {
+            switch (key) {
+                case "status":
+                    let valid = true;
+                    switch (status.status) {
+                        case "error":
+                            this.progress_value.style.background = "var(--red)";
+                            this.progress_value.style.width = '100%';
+                            break;
+                        case "success":
+                            this.progress_value.style.background = "var(--green)";
+                            this.progress_value.style.width = '100%';
+                            break;
+                        case "neutral":
+                            this.progress_value.style.background = "var(--bright)";
+                            break;
+                        default:
+                            valid = false;
+                    }
+                    if (valid) this.current_status.status = status.status;
+                    break;
+                case "statusText":
+                    this.current_status.statusText = status.statusText;
+                    this.status_text.innerText = status.statusText;
+                    break;
+                case "progress":
+                    this.current_status.progress = status.progress;
+                    this.progress_value.style.width = status.progress*100+'%';
+                    break;
+            }
+        }
+    }
 }

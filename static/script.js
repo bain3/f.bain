@@ -118,7 +118,7 @@ async function encrypt(file, progress_bar) {
         offset += 5242880;
         iv = new_iv; // changing the iv for the next block to not weaken the encryption
         progress_bar.update({
-            progress: offset / file.size
+            progress: offset / file.size * 0.5
         })
     }
 

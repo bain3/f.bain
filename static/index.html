@@ -19,8 +19,8 @@
         </svg>
         <p style="margin-bottom: 0.4em;">Click or drag n' drop to upload.</p>
         <p
-            style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5; cursor: pointer; pointer-events: all;
-                   touch-action: auto;"
+            style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5;pointer-events: all;
+            touch-action: auto;"
         >key strength: <input type="number" id="strength-input" value="12" min="10" max="128" onchange="strength=parseInt(this.value, 10);"/></p>
     </div>
 
@@ -45,6 +45,7 @@
     <p id="errors" hidden></p>
 </div>
 <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 20; text-align: center">
+    <p style="font-size: small;">Max file size: <span style="color: var(--bright)" id="max-filesize">0B</span></p>
     <p style="font-size: small;">End to end encrypted file sharing. Ignorance is bliss.</p>
     <p><a href="https://github.com/bain3/f.bain#how-does-it-work" target="_blank">How does it work?</a>, <a href="revoke.html" target="_blank"><b>Revoke a file</b></a></p>
 </div>

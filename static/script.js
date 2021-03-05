@@ -2,7 +2,7 @@
 let base73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*'(),";
 let strength = 12;
 let host = window.location.host;
-let max_file_size = 524280000; // 500MB on official f.bain. -8kb for leeway.
+let max_file_size = 0;
 let response = "";
 
 // from @mrkelvinli on github, pathing Blob.arrayBuffer for safari.
@@ -152,7 +152,7 @@ async function sendRequest(file) {
     if (file.size >= max_file_size) {
         progress_bar.update({
             status: "error",
-            statusText: "The file is too large (max 500MB)"
+            statusText: "The file is too large"
         });
         return;
     }
@@ -284,3 +284,22 @@ class Progress {
         }
     }
 }
+
+
+async function getMaxFileSize() {
+    let resp = await fetch("/max-filesize");
+    if (resp.ok) {
+        let json = await resp.json();
+        let size = json.max;
+        max_file_size = json.max;
+        let magnitudes = ["", "K", "M", "G", "T"];
+        let current_mag = 0;
+        while (size >= 1000 && current_mag < 4) {
+            size /= 1000
+            current_mag++;
+        }
+        document.getElementById('max-filesize').innerText = Math.round(size*10)/10 + magnitudes[current_mag] + "B";
+    }
+}
+
+window.onload = getMaxFileSize;

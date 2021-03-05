@@ -10,20 +10,22 @@ import os
 import json
 
 from fastapi import FastAPI, HTTPException, Body, Header, Request
-from fastapi.responses import HTMLResponse, Response, RedirectResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 import aiofiles
-import redis as redis_
+from redis import Redis
+
 # from starlette.staticfiles import StaticFiles
 
 from . import CONSTANTS
 
-redis = redis_.Redis(host=CONSTANTS.REDIS['host'],
-                     port=CONSTANTS.REDIS['port'],
-                     db=CONSTANTS.REDIS['db'],
-                     password=CONSTANTS.REDIS['password'])
+redis = Redis(host=CONSTANTS.REDIS['host'],
+              port=CONSTANTS.REDIS['port'],
+              db=CONSTANTS.REDIS['db'],
+              password=CONSTANTS.REDIS['password'])
+
 redis.set("initial", "something")
-if not redis.exists("count"):
-    redis.set("count", 0)
+redis.setnx("count", 0)
+redis.set("maxfs", CONSTANTS.MAX_FILE_SIZE)
 
 app = FastAPI()
 # app.mount("/static", StaticFiles(directory="/static/", html=True))
@@ -32,30 +34,55 @@ worker_start_time = time()
 
 
 @app.post("/new")
-async def create_file(request: Request, x_metadata: str = Header("")):
+async def create_file(request: Request, x_metadata: str = Header(""),
+                      content_len: int = Header(None, alias="content-length")):
+    # Verify metadata header
     try:
         if not x_metadata:
             raise binascii.Error
         metadata = b64decode(x_metadata)
     except binascii.Error:
         raise HTTPException(status_code=400, detail="X-Metadata header badly formed.")
+
+    # Catch large requests asap
+    if not content_len or content_len > CONSTANTS.MAX_FILE_SIZE:
+        raise HTTPException(status_code=413, detail="The file is too large")
+
     # get a new uuid
     uuid = 'initial'
     while redis.exists(uuid):
-        uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),") for i in
-                        range(5)])
-    print(metadata)
+        uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),") for _ in
+                        range(CONSTANTS.UUID_SIZE)])
+
+    # save the file
+    total = 0
+    aborted = False
+    async with aiofiles.open("/mount/upload/" + uuid.encode().hex(), 'wb+') as f:
+        async for chunk in request.stream():
+            total += len(chunk)
+            if total > CONSTANTS.MAX_FILE_SIZE:
+                aborted = True
+                break
+
+            await f.write(chunk)
+    if aborted:
+        # clean up if aborted, return error code
+        await aiofiles.os.remove("/mount/upload/" + uuid.encode().hex())
+        raise HTTPException(status_code=413, detail="The file is too large")
+
+    # save metadata and generate a revocation token
     redis.set("metadata-" + uuid, metadata)
     revocation_token = b64encode(secrets.token_bytes(18))
     redis.set("revocation-" + uuid, revocation_token)
+
+    # update statistics
     redis.incr("count")
-    async with aiofiles.open("/mount/upload/" + uuid.encode().hex(), 'wb+') as f:
-        await f.write(await request.body())
+
     return {"uuid": uuid, "revocation_token": revocation_token}
 
 
 @app.get("/status")
-async def get_status(authorization: str = Header(None)):
+def get_status(authorization: str = Header(None)):
     # optionally can be protected with a token, but i don't see the point
     if CONSTANTS.STATUS_TOKEN and not secrets.compare_digest(CONSTANTS.STATUS_TOKEN, authorization):
         raise HTTPException(status_code=401)
@@ -63,9 +90,36 @@ async def get_status(authorization: str = Header(None)):
     DIR = '/mount/upload/'
     return {
         "files": int(redis.get("count")),
-        "total_disk_usage": sum([os.path.getsize(DIR+f) for f in os.listdir(DIR) if os.path.isfile(DIR+f)]),
+        "total_disk_usage": sum([os.path.getsize(DIR + f) for f in os.listdir(DIR) if os.path.isfile(DIR + f)]),
         "worker_up_time": time() - worker_start_time
     }
+
+
+@app.get("/max-filesize")
+async def get_max_filesize():
+    return {"max": int(redis.get('maxfs'))}
+
+
+@app.post("/max-filesize/{new_max}")
+async def set_max_filesize(new_max: str, authorization: str = Header(None)):
+    if not CONSTANTS.MAX_FILE_SIZE_TOKEN or not secrets.compare_digest(authorization, CONSTANTS.MAX_FILE_SIZE_TOKEN):
+        raise HTTPException(status_code=401)
+
+    # convert to bytes
+    magnitude = 1
+    try:
+        magnitude = 1000 ** ("KMGT".index(new_max[-1]) + 1)
+        new_max = new_max[:-1]
+    except ValueError:
+        pass
+
+    try:
+        new_max = int(new_max)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid max filesize")
+
+    redis.set("maxfs", int(new_max) * magnitude)
+    return {"max": int(redis.get("maxfs"))}
 
 
 @app.get("/{uuid}")
@@ -103,11 +157,12 @@ def get_meta(uuid: str):
 
 
 @app.get("/{uuid}/raw")
-async def get_raw(uuid: str):
+def get_raw(uuid: str):
     if not os.path.exists("/mount/upload/" + uuid.encode().hex()):
         raise HTTPException(status_code=404, detail="File was not found.")
-    async with aiofiles.open("/mount/upload/" + uuid.encode().hex(), 'rb') as f:
-        return Response(await f.read(), media_type="application/octet-stream", status_code=200)
+
+    return StreamingResponse(open("/mount/upload/" + uuid.encode().hex(), "rb"),
+                             media_type="application/octet-stream", status_code=200)
 
 
 @app.delete("/{uuid}")
@@ -124,7 +179,6 @@ async def delete_file(uuid: str, body: dict = Body({"revocation_token": ""})):
     path = "/mount/upload/" + uuid.encode().hex()
     if path == "/mount/upload/":
         raise HTTPException(status_code=400, detail="no.")
-    os.remove(path)
+    await aiofiles.os.remove(path)
 
     return {"status": "ok"}
-

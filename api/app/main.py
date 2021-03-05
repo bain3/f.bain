@@ -45,7 +45,8 @@ async def create_file(request: Request, x_metadata: str = Header(""),
         raise HTTPException(status_code=400, detail="X-Metadata header badly formed.")
 
     # Catch large requests asap
-    if not content_len or content_len > CONSTANTS.MAX_FILE_SIZE:
+    max_filesize = int(redis.get("maxfs"))
+    if not content_len or content_len > max_filesize:
         raise HTTPException(status_code=413, detail="The file is too large")
 
     # get a new uuid
@@ -60,7 +61,7 @@ async def create_file(request: Request, x_metadata: str = Header(""),
     async with aiofiles.open("/mount/upload/" + uuid.encode().hex(), 'wb+') as f:
         async for chunk in request.stream():
             total += len(chunk)
-            if total > CONSTANTS.MAX_FILE_SIZE:
+            if total > max_filesize:
                 aborted = True
                 break
 

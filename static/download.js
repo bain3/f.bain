@@ -1,5 +1,7 @@
 let timeout_not_running = true;
+let downloaded = false;
 function start_timeout() {
+    if (downloaded) return;
     new Progress({}).update({
         status: "neutral",
         statusText: "waiting for 2 seconds...",
@@ -215,6 +217,7 @@ async function ol() {
         status: "success",
         statusText: "successfully downloaded \"" + filename + "\""
     });
+    downloaded = true;
     setTimeout(() => URL.revokeObjectURL(link.href), 7000);
 }
 

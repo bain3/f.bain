@@ -1,4 +1,8 @@
 .idea/*
+mount/upload/*
+!mount/upload/.keep
+redis_db/*
+!redis_db/.keep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -10,7 +10,7 @@ import os
 import json
 
 from fastapi import FastAPI, HTTPException, Body, Header, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, FileResponse
 import aiofiles
 from redis import Redis
 
@@ -162,8 +162,7 @@ def get_raw(uuid: str):
     if not os.path.exists("/mount/upload/" + uuid.encode().hex()):
         raise HTTPException(status_code=404, detail="File was not found.")
 
-    return StreamingResponse(open("/mount/upload/" + uuid.encode().hex(), "rb"),
-                             media_type="application/octet-stream", status_code=200)
+    return FileResponse("/mount/upload/" + uuid.encode().hex())
 
 
 @app.delete("/{uuid}")

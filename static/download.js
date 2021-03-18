@@ -1,13 +1,20 @@
+let timeout_not_running = true;
 function start_timeout() {
     new Progress({}).update({
         status: "neutral",
-        statusText: "Waiting for 2 seconds...",
+        statusText: "waiting for 2 seconds...",
         progress: 0
     });
-    setTimeout(()=> {if (document.hasFocus()) ol();}, 2000);
+    if (timeout_not_running) {
+        timeout_not_running = false;
+        setTimeout(()=> {
+            timeout_not_running = true;
+            if (document.hasFocus()) ol();
+        }, 2000);
+    }
 }
 
-async function getMeta(id) {
+async function getMeta(progress, id) {
     let xhr = new XMLHttpRequest();
     let meta = undefined;
     let promise = new Promise(resolve => { // fuck callbacks
@@ -18,7 +25,7 @@ async function getMeta(id) {
                 } else {
                     progress.update({
                         status: "error",
-                        statusText: "Failed to download file information (status code:" + this.status + ")"
+                        statusText: "failed to download file information (status code:" + this.status + ")"
                     });
                 }
                 resolve(true);
@@ -38,7 +45,7 @@ async function getKeyFromCrypto(crypto, url_key, salt) {
         password = decodeURI(url_key);
     } catch (e) {
         console.log(e);
-        return {error: "Could not parse key from url."}
+        return {error: "could not parse key from url."}
     }
 
     let wc_password = await crypto.importKey(
@@ -74,7 +81,7 @@ async function getRawData(progress, id) {
                 } else {
                     progress.update({
                         status: "error",
-                        statusText: "Failed to download encrypted file. (status code:" + this.status + ")"
+                        statusText: "failed to download encrypted file. (status code:" + this.status + ")"
                     });
                 }
                 resolve(true);
@@ -110,7 +117,7 @@ async function ol() {
     }
 
     // -- request meta --
-    let meta = await getMeta(id_pair[0]);
+    let meta = await getMeta(progress, id_pair[0]);
     if (meta === undefined) return;
     progress.update({progress: 0.05});
 

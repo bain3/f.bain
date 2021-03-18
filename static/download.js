@@ -143,6 +143,7 @@ async function ol() {
     let iv = keys.strengthened.slice(32, 64); // setting iv (second 256 bits)
 
     // -- decrypt filename --
+    progress.update({statusText: "decrypting filename"})
     let filename;
     try {
         let b64 = atob(meta.filename);
@@ -165,11 +166,13 @@ async function ol() {
     }
 
     // -- getting raw encrypted data --
+    progress.update({statusText: "fetching raw encrypted data"});
     let raw = await getRawData(progress, id_pair[0]);
     if (raw === undefined) return;
     progress.update({progress: 0.5});
 
     // -- decrypt file contents --
+    progress.update({statusText: "decrypting file contents"});
     let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
     try {
         let offset = 0;

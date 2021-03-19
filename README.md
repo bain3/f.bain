@@ -76,6 +76,15 @@ I am just an amateur who wanted to make myself a pretty secure website where to 
 to practice some cryptography). I am in no way certified in this field, so if you know how all of this
 works and/or have found out that I badly implemented parts of this, please contact me on discord `bain#5038`,
 or on [keybase][kb]. Thank you!
+
+
+# Changing max file size
+```
+POST /max-filesize/{new_max} (ex. 5K, 500M, 2G)
+Authorization: TOKEN
+
+(empty body)
+```
  
 
 [pbkdf2]: https://en.wikipedia.org/wiki/PBKDF2

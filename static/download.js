@@ -101,6 +101,7 @@ async function getRawData(progress, id) {
 }
 
 async function ol() {
+    downloaded = true;
     let progress = new Progress({
         status: "neutral",
         statusText: "fetching file information and verifying decryption key",
@@ -217,7 +218,6 @@ async function ol() {
         status: "success",
         statusText: "successfully downloaded \"" + filename + "\""
     });
-    downloaded = true;
     setTimeout(() => URL.revokeObjectURL(link.href), 7000);
 }
 

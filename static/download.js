@@ -11,7 +11,7 @@ function start_timeout() {
         timeout_not_running = false;
         setTimeout(()=> {
             timeout_not_running = true;
-            if (document.hasFocus()) ol();
+            if (document.visibilityState === "visible") ol();
         }, 2000);
     }
 }

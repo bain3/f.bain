@@ -18,7 +18,7 @@ let response = "";
                 resolve(fr.result);
             };
             fr.readAsArrayBuffer(this);
-        })
+        });
     }
 })();
 
@@ -39,28 +39,40 @@ function dropHandler(ev) {
     sendRequest(toSend);
 }
 
+/**
+ * Generates a random string constructed from a base73 alphabet
+ * @param number {int} number of characters
+ * @returns {string}
+ */
 function random_chars(number) {
     let array = new Uint8Array(number);
     let cryptoObj = window.crypto || window.msCrypto;
     cryptoObj.getRandomValues(array);
     let output = "";
-    for (let i = 0; i < array.length; i++) {
-        output += base73[Math.abs(array[i] % 73)];
+    while (output.length < number) {
+        for (let i = 0; i < array.length; i++) {
+            // skip values that are larger than the biggest multiple of 73
+            // otherwise we would have a higher probability of getting values between 0 and 36
+            if (array[i] > 219) continue;
+            output += base73[Math.abs(array[i] % 73)];
+            if (output.length === number) break;
+        }
     }
-    return output
+    return output;
 }
+
 
 async function encrypt(file, progress_bar) {
 
     progress_bar.update({
         status: "neutral",
         statusText: "encrypting...",
-    })
+    });
     // generate random password in base73
     let password;
     do {
         password = random_chars(strength);
-    } while ([".", ",", ")"].includes(password[password.length - 1])); // last character cannot be ) , or ., discord doesn't like it
+    } while ([".", ",", ")"].includes(password[password.length - 1])); // last character cannot be ")", "," or ".", discord doesn't like it
 
     // get crypto objects
     let cryptoObj = window.crypto || window.msCrypto; // for IE 11
@@ -119,7 +131,7 @@ async function encrypt(file, progress_bar) {
         iv = new_iv; // changing the iv for the next block to not weaken the encryption
         progress_bar.update({
             progress: offset / file.size * 0.5
-        })
+        });
     }
 
     // encrypt filename
@@ -133,8 +145,9 @@ async function encrypt(file, progress_bar) {
         new Uint8Array(enc_bytes)
             .reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
-    return {output_blob, key: password, salt: Array.from(salt), filename}
+    return {output_blob, key: password, salt: Array.from(salt), filename};
 }
+
 
 async function sendRequest(file) {
 
@@ -193,7 +206,7 @@ async function sendRequest(file) {
     // update progress bar
     xhr.upload.addEventListener("progress", function (p) {
         progress_bar.update({
-            progress: 0.5+(p.loaded/p.total/2)
+            progress: 0.5 + (p.loaded / p.total / 2)
         });
     })
 
@@ -224,7 +237,10 @@ function showRevocationDiv() {
     let rt = document.getElementById('revocation-token');
     rt.innerText = response.revocation_token;
     let s = window.localStorage.getItem("s");
-    if (s === null) {window.localStorage.setItem("s", "yes"); s="yes"}
+    if (s === null) {
+        window.localStorage.setItem("s", "yes");
+        s = "yes"
+    }
     if (s === "yes") {
         document.getElementById("store-rt").checked = true;
         storeRevocationToken(true);
@@ -233,11 +249,10 @@ function showRevocationDiv() {
 
 async function storeRevocationToken(v) {
     if (v) {
-        window.localStorage.setItem("revocation-"+encodeURI(response.uuid), response.revocation_token);
+        window.localStorage.setItem("revocation-" + encodeURI(response.uuid), response.revocation_token);
         document.getElementById("rt-show").hidden = true;
-    }
-    else {
-        window.localStorage.removeItem("revocation-"+encodeURI(response.uuid));
+    } else {
+        window.localStorage.removeItem("revocation-" + encodeURI(response.uuid));
         document.getElementById("rt-show").hidden = false;
     }
     window.localStorage.setItem("s", v ? "yes" : "no");
@@ -255,7 +270,7 @@ async function getMaxFileSize() {
             size /= 1000
             current_mag++;
         }
-        document.getElementById('max-filesize').innerText = Math.round(size*10)/10 + magnitudes[current_mag] + "B";
+        document.getElementById('max-filesize').innerText = Math.round(size * 10) / 10 + magnitudes[current_mag] + "B";
     }
 }
 

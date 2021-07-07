@@ -14,21 +14,27 @@ from fastapi.responses import HTMLResponse, FileResponse
 import aiofiles
 from redis import Redis
 
-# from starlette.staticfiles import StaticFiles
+REDIS = {
+    "host": "redis",
+    "port": 6379,
+    "db": 0,
+    "password": None
+}
+MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 5 * 1000 ^ 2 * 100))
+UUID_SIZE = int(os.getenv("UUID_SIZE", 5))
+STATUS_TOKEN = os.getenv("STATUS_TOKEN", "")
+MAX_FILE_SIZE_TOKEN = os.getenv("MAX_FILE_SIZE_TOKEN", "")
 
-from . import CONSTANTS
-
-redis = Redis(host=CONSTANTS.REDIS['host'],
-              port=CONSTANTS.REDIS['port'],
-              db=CONSTANTS.REDIS['db'],
-              password=CONSTANTS.REDIS['password'])
+redis = Redis(host=REDIS['host'],
+              port=REDIS['port'],
+              db=REDIS['db'],
+              password=REDIS['password'])
 
 redis.set("initial", "something")
 redis.setnx("count", 0)
-redis.set("maxfs", CONSTANTS.MAX_FILE_SIZE)
+redis.set("maxfs", MAX_FILE_SIZE)
 
 app = FastAPI()
-# app.mount("/static", StaticFiles(directory="/static/", html=True))
 
 worker_start_time = time()
 
@@ -53,7 +59,7 @@ async def create_file(request: Request, x_metadata: str = Header(""),
     uuid = 'initial'
     while redis.exists(uuid):
         uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),") for _ in
-                        range(CONSTANTS.UUID_SIZE)])
+                        range(UUID_SIZE)])
 
     # save the file
     total = 0
@@ -85,13 +91,13 @@ async def create_file(request: Request, x_metadata: str = Header(""),
 @app.get("/status")
 def get_status(authorization: str = Header(None)):
     # optionally can be protected with a token, but i don't see the point
-    if CONSTANTS.STATUS_TOKEN and not secrets.compare_digest(CONSTANTS.STATUS_TOKEN, authorization):
+    if STATUS_TOKEN and (authorization is None or not secrets.compare_digest(STATUS_TOKEN, authorization)):
         raise HTTPException(status_code=401)
 
-    DIR = '/mount/upload/'
+    dir_ = '/mount/upload/'
     return {
         "files": int(redis.get("count")),
-        "total_disk_usage": sum([os.path.getsize(DIR + f) for f in os.listdir(DIR) if os.path.isfile(DIR + f)]),
+        "total_disk_usage": sum([os.path.getsize(dir_ + f) for f in os.listdir(dir_) if os.path.isfile(dir_ + f)]),
         "worker_up_time": time() - worker_start_time
     }
 
@@ -103,7 +109,7 @@ async def get_max_filesize():
 
 @app.post("/max-filesize/{new_max}")
 async def set_max_filesize(new_max: str, authorization: str = Header(None)):
-    if not CONSTANTS.MAX_FILE_SIZE_TOKEN or not secrets.compare_digest(authorization, CONSTANTS.MAX_FILE_SIZE_TOKEN):
+    if MAX_FILE_SIZE_TOKEN or not secrets.compare_digest(authorization, MAX_FILE_SIZE_TOKEN):
         raise HTTPException(status_code=401)
 
     # convert to bytes

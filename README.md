@@ -5,10 +5,11 @@ except for its size.
 ## Deployment
 Deploying this website isn't very complicated.
 1. Clone this repo
-2. Use docker-compose to build and run the api
-3. Install nginx and set it up to reverse proxy anything that isn't found in `static`. You can find
-   countless tutorials online on how to do this.
-4. Set up HTTPS for basic security.
+2. Take a look at `docker-compose.yml` and change the environment variables if you want to
+3. Use docker-compose to build and run the api
+4. Install nginx and set it up to reverse proxy anything that isn't found in `static`. You can find
+   countless tutorials online on how to do this
+5. Set up HTTPS for basic security
    
 ## How does it work?
 ### Short description

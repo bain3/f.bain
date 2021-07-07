@@ -1,5 +1,6 @@
-let timeout_not_running = true;
+let timeout_running = false;
 let downloaded = false;
+
 function start_timeout() {
     if (downloaded) return;
     new Progress({}).update({
@@ -7,10 +8,10 @@ function start_timeout() {
         statusText: "waiting for 2 seconds...",
         progress: 0
     });
-    if (timeout_not_running) {
-        timeout_not_running = false;
-        setTimeout(()=> {
-            timeout_not_running = true;
+    if (!timeout_running) {
+        timeout_running = true;
+        setTimeout(() => {
+            timeout_running = false;
             if (document.visibilityState === "visible") ol();
         }, 2000);
     }
@@ -64,7 +65,7 @@ async function getKeyFromCrypto(crypto, url_key, salt) {
     );
     let wc_key = await crypto.importKey(
         "raw",
-        strengthened.slice(0,32),
+        strengthened.slice(0, 32),
         "AES-GCM",
         false,
         ["decrypt"]
@@ -90,7 +91,7 @@ async function getRawData(progress, id) {
             }
         });
         xhr.addEventListener("progress", function (p) {
-            progress.update({progress: 0.05+p.loaded/p.total*0.45});
+            progress.update({progress: 0.05 + p.loaded / p.total * 0.45});
         })
         xhr.open("GET", "/" + id + "/raw");
         xhr.responseType = "blob";
@@ -109,7 +110,7 @@ async function ol() {
     });
 
     let url = new URL(location.href);
-    let id_pair = [url.pathname.substring(url.pathname.lastIndexOf('/')+1), url.hash.substring(1)];
+    let id_pair = [url.pathname.substring(url.pathname.lastIndexOf('/') + 1), url.hash.substring(1)];
 
     if (id_pair.length === 1 || id_pair[1] === "") {
         progress.update({
@@ -151,8 +152,8 @@ async function ol() {
     try {
         let b64 = atob(meta.filename);
         let len = b64.length;
-        let bytes = new Uint8Array( len );
-        for (let i = 0; i < len; i++)        {
+        let bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
             bytes[i] = b64.charCodeAt(i);
         }
         filename = new TextDecoder().decode(await crypto.decrypt(
@@ -181,7 +182,7 @@ async function ol() {
         let offset = 0;
         while (offset < raw.size) {
             // getting data
-            let block = await raw.slice(offset, offset+5242928).arrayBuffer();
+            let block = await raw.slice(offset, offset + 5242928).arrayBuffer();
 
             // decrypting
             let d_block = await crypto.decrypt(
@@ -194,7 +195,7 @@ async function ol() {
             iv = new Uint8Array(d_block.slice(0, 32));
 
             offset += 5242928;
-            progress.update({progress: 0.5+offset/raw.size});
+            progress.update({progress: 0.5 + offset / raw.size});
         }
     } catch (e) {
         console.log(e);

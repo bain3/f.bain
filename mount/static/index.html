@@ -7,12 +7,13 @@
 </head>
 <body onload="start_timeout()">
 <div class="center">
-    <p>File is being downloaded and decrypted...</p>
     <div id="progress-div">
+        <p>File is being downloaded and decrypted...</p>
         <div class="progress">
             <div class="progress-value"></div>
         </div>
         <p id="status"></p>
+        <noscript>Your browser doesn't support javascript. It is necessary to decrypt the file.</noscript>
     </div>
 </div>
 <script src="/progress.js"></script>

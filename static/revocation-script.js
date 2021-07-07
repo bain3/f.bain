@@ -55,7 +55,10 @@ async function revokeFile() {
 }
 
 function findRt(url) {
-    console.log("aaa");
+    if (url.includes("%")) {
+        url = decodeURI(url);
+        document.getElementById("urlinput").value = url;
+    }
     let id = getID(url);
     if (id === null) return;
 

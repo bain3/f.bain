@@ -193,7 +193,7 @@ async function sendRequest(file) {
     // update progress bar
     xhr.upload.addEventListener("progress", function (p) {
         progress_bar.update({
-            progress: 0.5+(p.loaded/p.total)
+            progress: 0.5+(p.loaded/p.total/2)
         });
     })
 

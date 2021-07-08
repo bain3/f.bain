@@ -155,7 +155,7 @@ async function sendRequest(file) {
     document.getElementsByClassName('center')[0].classList.remove('click-through');
     document.getElementById('inp').disabled = true;
     document.getElementById('welcome-div').hidden = true;
-    let progress_div = document.getElementById('container');
+    let progress_div = document.getElementById('progress-div');
     let success_div = document.getElementById('success-div');
     progress_div.style.visibility = 'initial';
 

@@ -164,6 +164,7 @@ def get_meta(uuid: str):
 
 
 @app.get("/{uuid}/raw")
+@app.head("/{uuid}/raw")
 def get_raw(uuid: str):
     if not os.path.exists("/mount/upload/" + uuid.encode().hex()):
         raise HTTPException(status_code=404, detail="File was not found.")

@@ -1,9 +1,14 @@
 class Progress {
-    constructor(status) {
-        this.progress_value = document.getElementsByClassName('progress-value')[0];
-        this.status_text = document.getElementById("status");
+    constructor(status, progress_value_el, status_text_el, progress_change_func) {
+        this.progress_value = progress_value_el;
+        this.status_text = status_text_el;
         this.current_status = status;
+        this.progress_change_func = progress_change_func || this.pcf;
         this.update(status);
+    }
+
+    pcf(percent) {
+        return `${percent*100}%`
     }
 
     update(status) {
@@ -14,11 +19,11 @@ class Progress {
                     switch (status.status) {
                         case "error":
                             this.progress_value.style.background = "var(--red)";
-                            this.progress_value.style.width = '100%';
+                            this.progress_value.style.width = this.progress_change_func(1);
                             break;
                         case "success":
                             this.progress_value.style.background = "var(--green)";
-                            this.progress_value.style.width = '100%';
+                            this.progress_value.style.width = this.progress_change_func(1);
                             break;
                         case "neutral":
                             this.progress_value.style.background = "var(--bright)";
@@ -34,7 +39,7 @@ class Progress {
                     break;
                 case "progress":
                     this.current_status.progress = status.progress;
-                    this.progress_value.style.width = status.progress*100+'%';
+                    this.progress_value.style.width = this.progress_change_func(status.progress);
                     break;
             }
         }

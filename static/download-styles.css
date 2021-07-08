@@ -1,0 +1,76 @@
+:root {
+    --brighter: #fefefe;
+    --bright: #7f7f7f;
+    --even-darker: #21212f;
+    --dark: #13131b;
+    --red: #bf3b3b;
+    --green: #2a9c2a;
+}
+
+body {
+    background-color: var(--dark);
+    font-family: 'Nunito Sans', sans-serif;
+    color: var(--bright);
+}
+
+.center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    margin: auto;
+    text-align: center;
+}
+
+#container {
+    background: #1e1e2b;
+    padding: 0.3em 1.5em 1.3em;
+    border-radius: 1em;
+}
+
+.info {
+    margin-left: 1em;
+    text-align: left;
+}
+
+#filename {
+    color: var(--brighter);
+    margin-bottom: 0.5em;
+}
+
+#size {
+    font-size: smaller;
+    margin-bottom: 0.5em;
+}
+
+.btn {
+    height: 1rem;
+    width: 12rem;
+    background: #2A2A3C;
+    padding: 5px 10px;
+    border-radius: 2rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    cursor: pointer;
+}
+
+.btn-text {
+    font-size: smaller;
+    color: var(--brighter);
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    z-index: 2;
+    margin: auto;
+}
+
+.btn-progress {
+    transition: width ease-in-out 100ms;
+    margin-left: -10px;
+    position: absolute;
+    height: calc(1rem + 10px);
+    border-radius: 2rem;
+    width: 0;
+    background: var(--green);
+}

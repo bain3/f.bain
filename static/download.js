@@ -1,21 +1,4 @@
-let timeout_running = false;
 let downloaded = false;
-
-function start_timeout() {
-    if (downloaded) return;
-    new Progress({}).update({
-        status: "neutral",
-        statusText: "waiting for 2 seconds...",
-        progress: 0
-    });
-    if (!timeout_running) {
-        timeout_running = true;
-        setTimeout(() => {
-            timeout_running = false;
-            if (document.visibilityState === "visible") ol();
-        }, 2000);
-    }
-}
 
 async function getMeta(progress, id) {
     let xhr = new XMLHttpRequest();
@@ -48,7 +31,7 @@ async function getKeyFromCrypto(crypto, url_key, salt) {
         password = decodeURI(url_key);
     } catch (e) {
         console.log(e);
-        return {error: "could not parse key from url."}
+        return {error: "Cannot get key from URL"}
     }
 
     let wc_password = await crypto.importKey(
@@ -84,14 +67,14 @@ async function getRawData(progress, id) {
                 } else {
                     progress.update({
                         status: "error",
-                        statusText: "failed to download encrypted file. (status code:" + this.status + ")"
+                        statusText: "Failed to fetch data (status:" + this.status + ")"
                     });
                 }
                 resolve(true);
             }
         });
         xhr.addEventListener("progress", function (p) {
-            progress.update({progress: 0.05 + p.loaded / p.total * 0.45});
+            progress.update({progress: 0.10 + p.loaded / p.total * 0.40});
         })
         xhr.open("GET", "/" + id + "/raw");
         xhr.responseType = "blob";
@@ -101,29 +84,45 @@ async function getRawData(progress, id) {
     return raw;
 }
 
-async function ol() {
-    downloaded = true;
-    let progress = new Progress({
-        status: "neutral",
-        statusText: "fetching file information and verifying decryption key",
-        progress: 0.01
-    });
+async function getSizeHumanReadable(id) {
+    let resp = await fetch(`/${id}/raw`, {method: "HEAD"});
+    if (!resp.ok) return "0B";
+    let size = resp.headers.get("content-length");
+    let magnitudes = ["", "K", "M", "G", "T"];
+    let current_mag = 0;
+    while (size >= 1000 && current_mag < 4) {
+        size /= 1000
+        current_mag++;
+    }
+    return `${Math.round(size*10)/10} ${magnitudes[current_mag]}B`;
+}
 
+async function on_load() {
+    let button_element = document.getElementById('btn');
+    button_element.style.display = 'flex';
+    let progress = new Progress({
+            status: "neutral",
+            statusText: "Fetching file metadata"
+        },
+        document.getElementById('progress'),
+        document.getElementById('status-text'),
+        (p) => `calc(${12 * p}rem + ${20 * p}px)`
+    );
+
+    // -- parse url --
     let url = new URL(location.href);
     let id_pair = [url.pathname.substring(url.pathname.lastIndexOf('/') + 1), url.hash.substring(1)];
 
     if (id_pair.length === 1 || id_pair[1] === "") {
         progress.update({
             status: "error",
-            statusText: "link is incorrect, missing key"
+            statusText: "Invalid link"
         });
         return;
     }
 
     // -- request meta --
     let meta = await getMeta(progress, id_pair[0]);
-    if (meta === undefined) return;
-    progress.update({progress: 0.05});
 
     // -- derive keys --
     let cryptoObj = window.crypto || window.msCrypto; // for IE 11
@@ -132,7 +131,7 @@ async function ol() {
     if (crypto === undefined) {
         progress.update({
             status: "error",
-            statusText: "could not get cryptography API from your browser, try using a different one"
+            statusText: "Browser missing crypto functions"
         });
         return;
     }
@@ -144,10 +143,9 @@ async function ol() {
         });
         return;
     }
-    let iv = keys.strengthened.slice(32, 64); // setting iv (second 256 bits)
 
     // -- decrypt filename --
-    progress.update({statusText: "decrypting filename"})
+    progress.update({statusText: "Decrypting filename"})
     let filename;
     try {
         let b64 = atob(meta.filename);
@@ -163,20 +161,39 @@ async function ol() {
     } catch (e) {
         progress.update({
             status: "error",
-            statusText: "failed to decrypt filename, usually caused by an invalid decryption key"
+            statusText: "Invalid decryption key"
         });
         console.log(e);
         return;
     }
+    document.getElementById('filename').innerText = filename;
+    document.getElementById('size').innerText = await getSizeHumanReadable(id_pair[0]);
+
+    progress.update({statusText: "Download"});
+
+    // -- set event handler on button --
+    button_element.addEventListener('click', () => {
+        if (!downloaded) {
+            download(progress, id_pair, keys, filename);
+            downloaded = true;
+        }
+    });
+}
+
+async function download(progress, id_pair, keys, filename) {
+
+    let crypto = (window.crypto || window.msCrypto).subtle; // for IE 11
+
+    let iv = keys.strengthened.slice(32, 64); // setting iv (second 256 bits)
 
     // -- getting raw encrypted data --
-    progress.update({statusText: "fetching raw encrypted data"});
+    progress.update({statusText: "Fetching encrypted data"});
     let raw = await getRawData(progress, id_pair[0]);
     if (raw === undefined) return;
     progress.update({progress: 0.5});
 
     // -- decrypt file contents --
-    progress.update({statusText: "decrypting file contents"});
+    progress.update({statusText: "Decrypting file"});
     let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
     try {
         let offset = 0;
@@ -201,7 +218,7 @@ async function ol() {
         console.log(e);
         progress.update({
             status: "error",
-            statusText: "error while decrypting file"
+            statusText: "Decryption error"
         });
     }
     if (output_blob.size === 0) return;
@@ -217,7 +234,7 @@ async function ol() {
     link.remove();
     progress.update({
         status: "success",
-        statusText: "successfully downloaded \"" + filename + "\""
+        statusText: "File downloaded"
     });
     setTimeout(() => URL.revokeObjectURL(link.href), 7000);
 }

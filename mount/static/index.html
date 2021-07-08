@@ -3,21 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Download</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="download-styles.css">
 </head>
-<body onload="start_timeout()">
+<body onload="on_load()">
 <div class="center">
-    <div id="progress-div">
-        <p>File is being downloaded and decrypted...</p>
-        <div class="progress">
-            <div class="progress-value"></div>
+    <div id="container">
+        <div style="display: flex; flex-direction: row; justify-items: center;">
+            <img src="file.svg" alt="file" width="70em" style="margin-left: -0.25em; margin-top: 1em"/>
+            <div class="info">
+                <p id="filename">xJYC8EnJWaWtFu!xJYC8</p>
+                <p id="size">Size: !$@&B</p>
+                <noscript style="color: var(--red); font-size: smaller;">
+                    Your browser doesn't support javascript. It is necessary to decrypt the file.
+                </noscript>
+                <div class="btn" id="btn" style="display: none">
+                    <p class="btn-text" id="status-text">Download</p>
+                    <div class="btn-progress" id="progress"></div>
+                </div>
+            </div>
         </div>
-        <p id="status"></p>
-        <noscript>Your browser doesn't support javascript. It is necessary to decrypt the file.</noscript>
     </div>
 </div>
 <script src="/progress.js"></script>
 <script src="/download.js"></script>
-<script>window.onfocus = start_timeout;</script>
 </body>
 </html>

@@ -2,6 +2,10 @@
 Sources for my end to end encrypted file sharing website. The server has no knowledge about the file uploaded,
 except for its size.
 
+Using f.bain as a website was always the intended way, but to increase the security even further a native
+command line utility was created ([fget](https://github.com/bain3/fget)). By using a native application you
+remove the risk of being served malicious javascript from a potentially compromised server.
+
 ## Deployment
 Deploying this website isn't very complicated.
 1. Clone this repo

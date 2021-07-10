@@ -88,6 +88,11 @@ async def create_file(request: Request, x_metadata: str = Header(""),
     return {"uuid": uuid, "revocation_token": revocation_token}
 
 
+@app.head("/status")
+def head_status():
+    return
+
+
 @app.get("/status")
 def get_status(authorization: str = Header(None)):
     # optionally can be protected with a token, but i don't see the point
@@ -108,8 +113,8 @@ async def get_max_filesize():
 
 
 @app.post("/max-filesize/{new_max}")
-async def set_max_filesize(new_max: str, authorization: str = Header(None)):
-    if MAX_FILE_SIZE_TOKEN or not secrets.compare_digest(authorization, MAX_FILE_SIZE_TOKEN):
+async def set_max_filesize(new_max: str, authorization: str = Header("")):
+    if not MAX_FILE_SIZE_TOKEN or not secrets.compare_digest(authorization, MAX_FILE_SIZE_TOKEN):
         raise HTTPException(status_code=401)
 
     # convert to bytes

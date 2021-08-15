@@ -1,3 +1,4 @@
 redis
 aiofiles
 python-multipart
+loguru

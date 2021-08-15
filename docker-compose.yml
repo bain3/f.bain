@@ -17,6 +17,9 @@ services:
       - MAX_FILE_SIZE=500000000
       # size of uuids for files, increase it to add security or when you're expecting a decent amount of traffic
       - UUID_SIZE=5
+      # disable most of logging
+      - LOG_LEVEL=critical
+      - ACCESS_LOG=
   redis:
     image: "redis:alpine"
     volumes:

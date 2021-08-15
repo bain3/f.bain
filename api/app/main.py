@@ -2,6 +2,7 @@
 This is basically all of f.bain. Very simple.
 """
 import binascii
+import sys
 from random import choice
 from time import time
 from base64 import b64decode, b64encode
@@ -10,9 +11,13 @@ import os
 import json
 
 from fastapi import FastAPI, HTTPException, Body, Header, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, Response
+
 import aiofiles
 from redis import Redis
+
+# replace the default fastapi logger with our logger that only logs errors
+from loguru import logger
 
 REDIS = {
     "host": "redis",
@@ -30,13 +35,20 @@ redis = Redis(host=REDIS['host'],
               db=REDIS['db'],
               password=REDIS['password'])
 
-redis.set("initial", "something")
 redis.setnx("count", 0)
 redis.set("maxfs", MAX_FILE_SIZE)
 
 app = FastAPI()
 
 worker_start_time = time()
+
+sys.tracebacklimit = 5  # limit tracebacks to a normal length
+
+
+@app.exception_handler(500)
+async def internal_error_reporter(request, exc):
+    logger.exception("Caught Internal Error")
+    return Response(status_code=500)
 
 
 @app.post("/new")
@@ -56,8 +68,8 @@ async def create_file(request: Request, x_metadata: str = Header(""),
         raise HTTPException(status_code=413, detail="The file is too large")
 
     # get a new uuid
-    uuid = 'initial'
-    while redis.exists(uuid):
+    uuid = None
+    while uuid is None or redis.exists(uuid):
         uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),") for _ in
                         range(UUID_SIZE)])
 

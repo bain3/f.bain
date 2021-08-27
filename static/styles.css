@@ -84,6 +84,7 @@ a {
     font-size: small;
     text-decoration: none;
     color: var(--darker);
+    white-space: nowrap;
 }
 #success {
     cursor: copy;

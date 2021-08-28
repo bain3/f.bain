@@ -3,28 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Download</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="download-styles.css">
 </head>
 <body onload="on_load()">
 <div class="center">
     <div id="container">
-        <div style="display: flex; flex-direction: row; justify-items: center;">
-            <img src="file.svg" alt="file" width="70em" style="margin-left: -0.25em; margin-top: 1em"/>
-            <div class="info">
-                <p id="filename">xJYC8EnJWaWtFu!xJYC8</p>
-                <p id="size">Size: !$@&B</p>
-                <noscript style="color: var(--red); font-size: smaller;">
-                    Your browser doesn't support javascript. It is necessary to decrypt the file.
-                </noscript>
-                <div class="btn" id="btn" style="display: none">
-                    <p class="btn-text" id="status-text">Download</p>
-                    <div class="btn-progress" id="progress"></div>
-                </div>
+        <img src="file.svg" alt="file" height="90em"/>
+        <div class="info">
+            <p id="filename">xJYC8EnJWaWtFu!xJYC8</p>
+            <p id="size">Size: !$@&B</p>
+            <noscript style="color: var(--red); font-size: smaller;">
+                Your browser doesn't support javascript. It is necessary to decrypt the file.
+            </noscript>
+            <div class="btn" id="btn">
+                <p class="btn-text" id="status-text">Download</p>
+                <div class="btn-progress" id="progress"></div>
             </div>
         </div>
     </div>
 </div>
-<script src="/progress.js"></script>
-<script src="/download.js"></script>
+<script src="progress.js"></script>
+<script src="download.js"></script>
 </body>
 </html>

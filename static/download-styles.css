@@ -23,9 +23,11 @@ body {
 }
 
 #container {
-    background: #1e1e2b;
-    padding: 0.3em 1.5em 1.3em;
-    border-radius: 1em;
+    display: flex;
+    flex-direction: row;
+    justify-items: center;
+    align-items: center;
+    max-width: min(500px, 90vw);
 }
 
 .info {
@@ -36,6 +38,8 @@ body {
 #filename {
     color: var(--brighter);
     margin-bottom: 0.5em;
+    margin-top: 0;
+    word-break: break-all;
 }
 
 #size {
@@ -44,7 +48,7 @@ body {
 }
 
 .btn {
-    height: 1rem;
+    height: 0.8rem;
     width: 12rem;
     background: #2A2A3C;
     padding: 5px 10px;
@@ -69,7 +73,7 @@ body {
     transition: width ease-in-out 100ms;
     margin-left: -10px;
     position: absolute;
-    height: calc(1rem + 10px);
+    height: calc(0.8rem + 10px);
     border-radius: 2rem;
     width: 0;
     background: var(--green);

@@ -48,7 +48,7 @@ body {
 }
 
 .btn {
-    height: 0.8rem;
+    height: min-content;
     width: 12rem;
     background: #2A2A3C;
     padding: 5px 10px;

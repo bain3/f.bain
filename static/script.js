@@ -39,18 +39,15 @@ function dropHandler(ev) {
 async function sendRequest(file) {
 
     // make center clickable, disable file input, hide welcome screen, and show progress information
-    document.getElementsByClassName('center')[0].classList.remove('click-through');
-    document.getElementById('inp').disabled = true;
-    document.getElementById('welcome-div').hidden = true;
-    let progress_div = document.getElementById('progress-div');
-    let success_div = document.getElementById('success-div');
-    progress_div.style.visibility = 'initial';
-
+    R('container').classList.remove('click-through');
+    R('screen.0').hidden = true;
+    R('screen.1').style.visibility = 'initial';
+    R('fileInput').disabled = true;
 
     let progress_bar = new Progress(
         {status: "neutral", statusText: "", progress: 0},
-        document.getElementsByClassName('progress-value')[0],
-        document.getElementById('status')
+        R('prgrs.value'),
+        R('prgrs.status')
     );
 
     if (file.size >= max_file_size) {
@@ -61,6 +58,7 @@ async function sendRequest(file) {
         return;
     }
 
+    // upload file
     const localFile = new LocalFile(file);
     let resp;
     try {
@@ -69,13 +67,13 @@ async function sendRequest(file) {
         progress_bar.update({status: "error", statusText: e})
         return;
     }
-    document.getElementById('success').innerHTML =
-        `https://${window.location.host}/<span style="color: var(--bright)">${resp.uuid}#${resp.password}</span>`;
-    document.getElementById('revocation-token').innerText = resp.revocationToken;
+
+    R('out.url').innerHTML =
+        `https://${window.location.host}/<span style="color: var(--white)">${resp.uuid}#${resp.password}</span>`;
     response = resp;
     showRevocationDiv();
-    progress_div.style.visibility = 'hidden';
-    success_div.hidden = false;
+    R('screen.1').style.visibility = 'hidden';
+    R('screen.2').hidden = false;
 }
 
 function copyToClipboard(el) {
@@ -87,15 +85,14 @@ function copyToClipboard(el) {
 }
 
 function showRevocationDiv() {
-    let rt = document.getElementById('revocation-token');
-    rt.innerText = response.revocationToken;
+    R('out.rt.value').innerText = response.revocationToken;
     let s = window.localStorage.getItem("s");
     if (s === null) {
         window.localStorage.setItem("s", "yes");
-        s = "yes"
+        s = "yes";
     }
     if (s === "yes") {
-        document.getElementById("store-rt").checked = true;
+        R('out.rt.store').checked = true;
         storeRevocationToken(true);
     }
 }
@@ -103,10 +100,10 @@ function showRevocationDiv() {
 async function storeRevocationToken(v) {
     if (v) {
         window.localStorage.setItem("revocation-" + encodeURI(response.uuid), response.revocationToken);
-        document.getElementById("rt-show").hidden = true;
+        R('out.rt.show').hidden = true;
     } else {
         window.localStorage.removeItem("revocation-" + encodeURI(response.uuid));
-        document.getElementById("rt-show").hidden = false;
+        R('out.rt.show').hidden = false;
     }
     window.localStorage.setItem("s", v ? "yes" : "no");
 }
@@ -123,8 +120,8 @@ async function getMaxFileSize() {
             size /= 1000
             current_mag++;
         }
-        document.getElementById('max-filesize').innerText = Math.round(size * 10) / 10 + magnitudes[current_mag] + "B";
+        R('filesize').innerText = Math.round(size * 10) / 10 + magnitudes[current_mag] + "B";
     }
 }
 
-window.onload = getMaxFileSize;
+R.preload().then(getMaxFileSize);

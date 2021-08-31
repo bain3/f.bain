@@ -1,24 +1,16 @@
 :root {
-    --bright: #fefefe;
-    --darker: #7f7f7f;
-    --even-darker: #21212f;
-    --dark: #13131b;
-    --red: #bf3b3b;
-    --green: #35c135;
+    --white: #fefefe;
+    --primary: #7f7f7f;
+    --secondary: #21212f;
+    --background: #13131b;
+    --error: #bf3b3b;
+    --success: #35c135;
 }
 
 body {
-    background-color: var(--dark);
-    font-family: 'Nunito Sans', sans-serif;
-    color: var(--darker);
-}
-
-#inp {
-    opacity: 0;
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
+    background-color: var(--background);
+    font-family: sans-serif;
+    color: var(--primary);
 }
 
 .center {
@@ -35,65 +27,8 @@ body {
     touch-action: none;
 }
 
-.progress {
-    background: var(--even-darker);
-    justify-content: flex-start;
-    border-radius: 100px;
-    align-items: center;
-    position: relative;
-    padding: 0 5px;
-    display: flex;
-    height: 1em;
-    width: 300px;
-    margin: auto;
-}
-
-.progress-value {
-    transition: width ease-in-out 100ms;
-    box-shadow: 0 10px 40px -10px var(--bright);
-    border-radius: 100px;
-    background: var(--bright);
-    height: 0.5em;
-    width: 0;
-}
-
-@keyframes slidein {
-    0% {
-        top: -20px;
-    }
-    15% {
-        top: 7px;
-    }
-    85% {
-        top: 7px;
-    }
-    100% {
-        top: -25px;
-    }
-}
-
-#copied-box {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    animation: 2.5s slidein ease-out forwards;
-    color: var(--bright);
-}
-
 a {
-    font-size: small;
     text-decoration: none;
-    color: var(--darker);
+    color: var(--primary);
     white-space: nowrap;
 }
-#success {
-    cursor: copy;
-}
-
-#strength-input {
-    width: 3em;
-    background: none;
-    border: none;
-    color: var(--bright);
-}
-

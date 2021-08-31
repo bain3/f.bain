@@ -4,26 +4,28 @@
     <meta charset="UTF-8">
     <title>Download</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="download-styles.css">
+    <script defer src="progress.js"></script>
+    <script defer src="referencer.js"></script>
+    <script defer src="download.js"></script>
 </head>
-<body onload="on_load()">
+<body>
 <div class="center">
-    <div id="container">
+    <div class="container">
         <img src="file.svg" alt="file" height="90em"/>
         <div class="info">
-            <p id="filename">xJYC8EnJWaWtFu!xJYC8</p>
-            <p id="size">!$@&B</p>
-            <noscript style="color: var(--red); font-size: smaller;">
+            <p x-r="file.name" class="filename">xJYC8EnJWaWtFu!xJYC8</p>
+            <p x-r="file.size" class="size">!$@&B</p>
+            <noscript style="color: var(--error); font-size: smaller;">
                 Your browser doesn't support javascript. It is necessary to decrypt the file.
             </noscript>
-            <div class="btn" id="btn">
-                <p class="btn-text" id="status-text">Download</p>
-                <div class="btn-progress" id="progress"></div>
+            <div class="btn" x-r="button">
+                <p class="btn-text" x-r="prgrs.status">Download</p>
+                <div class="btn-progress" x-r="prgrs.value"></div>
             </div>
         </div>
     </div>
 </div>
-<script src="progress.js"></script>
-<script src="download.js"></script>
 </body>
 </html>

@@ -4,60 +4,64 @@
     <meta charset="UTF-8">
     <title>f.bain</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;700;900&display=swap" rel="stylesheet">
     <script defer src="file.js"></script>
-    <script src="progress.js"></script>
-    <script src="script.js"></script>
+    <script defer src="progress.js"></script>
+    <script defer src="referencer.js"></script>
+    <script defer src="script.js"></script>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="landing.css">
 </head>
 <body>
 <div id="copied-box" hidden="">Copied!</div>
-<input type="file" ondrop="dropHandler(event);" id="inp" onchange="inputHandler(event);" title=" " autocomplete="off">
-<div class="center click-through">
-    <div id="welcome-div">
-        <svg xmlns="http://www.w3.org/2000/svg" height="5em" viewBox="-53 1 511 511.999" width="5em"
-             style="fill: #dadada">
-            <path d="M276.41 3.957C274.062 1.484 270.844 0 267.508 0H67.778C30.921 0 .5 30.3.5 67.152v377.692C.5 481.699 30.922 512 67.777 512h271.086c36.856 0 67.278-30.3 67.278-67.156V144.94c0-3.214-1.485-6.304-3.586-8.656zm3.586 39.7l84.469 88.671h-54.91c-16.325 0-29.559-13.11-29.559-29.433zm58.867 443.609H67.777c-23.125 0-42.543-19.168-42.543-42.422V67.152c0-23.125 19.293-42.418 42.543-42.418h187.485v78.16c0 30.051 24.242 54.168 54.293 54.168h71.851v287.782c0 23.254-19.293 42.422-42.543 42.422zm0 0"/>
-            <path d="M305.102 401.934H101.539c-6.8 0-12.367 5.562-12.367 12.367 0 6.8 5.566 12.367 12.367 12.367h203.688c6.8 0 12.367-5.566 12.367-12.367 0-6.805-5.567-12.367-12.492-12.367zm0 0M140 268.863l50.953-54.789v135.051c0 6.8 5.567 12.367 12.367 12.367 6.805 0 12.368-5.566 12.368-12.367v-135.05l50.953 54.788c2.472 2.594 5.691 3.957 9.027 3.957 2.969 0 6.062-1.113 8.41-3.34 4.95-4.699 5.32-12.492.621-17.437l-72.472-77.79c-2.352-2.472-5.567-3.956-9.028-3.956-3.465 0-6.68 1.484-9.027 3.957l-72.473 77.789c-4.699 4.945-4.328 12.86.617 17.437 5.196 4.7 12.985 4.329 17.684-.617zm0 0"/>
-        </svg>
+<input type="file" ondrop="dropHandler(event);" x-r="fileInput" onchange="inputHandler(event);" title=" "
+       autocomplete="off" class="file-input">
+<div class="center click-through" x-r="container">
+    <div id="welcome-div" x-r="screen.0">
+        <img src="upload.svg" alt="upload file icon"/>
+
         <p style="margin-bottom: 0.4em;">Click or drag n' drop to upload.</p>
-        <noscript style="color: var(--red)">
+
+        <noscript style="color: var(--error)">
             In order to encrypt your files locally your browser needs to support javascript.
             Please try again with a different browser.
         </noscript>
-        <p
-                style="font-size: small; margin-bottom: 0; margin-top: 0; opacity: 0.5;pointer-events: all;
-            touch-action: auto;"
-        >key strength: <input type="number" id="strength-input" value="12" min="10" max="128"
-                              onchange="strength=parseInt(this.value, 10);"/></p>
+        <p class="key-strength">key strength:
+            <input type="number" value="12" min="10" max="128" onchange="strength=parseInt(this.value, 10);"/>
+        </p>
     </div>
 
-    <div id="progress-div" style="visibility: hidden;">
-        <div class="progress">
-            <div class="progress-value"></div>
+    <div id="progress-div" style="visibility: hidden;" x-r="screen.1">
+        <div class="progress" x-r="prgrs">
+            <div class="progress-value" x-r="prgrs.value"></div>
         </div>
-        <p id="status"></p>
+        <p x-r="prgrs.status"></p>
     </div>
 
-    <div id="success-div" hidden>
-        <p id="success" onclick="copyToClipboard(this);">
+    <div id="success-div" x-r="screen.2" hidden>
+        <p class="url" x-r="out.url" onclick="copyToClipboard(this);">
             https://f.bain.cz/nothing
         </p>
-        <input type="checkbox" id="store-rt" oninput="storeRevocationToken(this.checked)" style="margin-top: 1em"/>
-        <label for="store-rt" style="transform: translate(0, -50%); position: relative;">store revocation token in this
-            browser</label>
+
+        <input type="checkbox" id="store-rt" x-r="out.rt.show" oninput="storeRevocationToken(this.checked)"
+               style="margin-top: 1em"/>
+        <label for="store-rt">store revocation token in this browser</label>
+
         <p style="font-size: x-small; margin-top: 0;">(you won't be able to delete the file without it)</p>
-        <p style="margin-bottom: 0;" id="rt-show" hidden>Your revocation token is:<br>
-            <span id="revocation-token" style="color: #fefefe; cursor: copy;" onclick="copyToClipboard(this)"></span>
+        <p style="margin-bottom: 0;" x-r="out.rt" hidden>Your revocation token is:<br>
+            <span x-r="out.rt.value" style="color: var(--white); cursor: copy;" onclick="copyToClipboard(this)"></span>
         </p>
     </div>
-    <p id="errors" hidden></p>
 </div>
 <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 20; text-align: center">
-    <p style="font-size: small;">Max file size: <span style="color: var(--bright)" id="max-filesize">0B</span></p>
+    <p style="font-size: small;">Max file size: <span style="color: var(--white)" x-r="filesize">0B</span></p>
+
     <p style="font-size: small;">End to end encrypted file sharing. Ignorance is bliss.</p>
-    <p><a href="https://github.com/bain3/f.bain#how-does-it-work" target="_blank" rel="noopener" rel="noreferrer">How
-        does it work?</a>, <a href="revoke.html" target="_blank"><b>Revoke a file</b></a></p>
+
+    <p>
+        <a href="https://github.com/bain3/f.bain#how-does-it-work" target="_blank" rel="noopener noreferrer">
+            How does it work?</a>,
+        <a href="revoke.html" target="_blank"><b>Revoke a file</b></a>
+    </p>
 </div>
 </body>
 </html>

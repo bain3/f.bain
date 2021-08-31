@@ -1,5 +1,5 @@
 class Progress {
-    colors = {"error": "--red", "success": "--green", "neutral": "--bright"}
+    colors = {"error": "--error", "success": "--success", "neutral": "--white"}
 
     constructor(status, progress_value_el, status_text_el, progress_change_func) {
         this.progress_value = progress_value_el;

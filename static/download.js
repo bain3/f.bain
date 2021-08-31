@@ -98,14 +98,13 @@ async function getSizeHumanReadable(id) {
 }
 
 async function on_load() {
-    let button_element = document.getElementById('btn');
-    button_element.style.display = 'flex';
+    R('button').style.display = 'flex';
     let progress = new Progress({
             status: "neutral",
             statusText: "Fetching file metadata"
         },
-        document.getElementById('progress'),
-        document.getElementById('status-text'),
+        R('prgrs.value'),
+        R('prgrs.status'),
         (p) => `calc(${12 * p}rem + ${20 * p}px)`
     );
 
@@ -166,13 +165,13 @@ async function on_load() {
         console.log(e);
         return;
     }
-    document.getElementById('filename').innerText = filename;
-    document.getElementById('size').innerText = await getSizeHumanReadable(id_pair[0]);
+    R('file.name').innerText = filename;
+    R('file.size').innerText = await getSizeHumanReadable(id_pair[0]);
 
     progress.update({statusText: "Download"});
 
     // -- set event handler on button --
-    button_element.addEventListener('click', () => {
+    R('button').addEventListener('click', () => {
         if (!downloaded) {
             download(progress, id_pair, keys, filename);
             downloaded = true;
@@ -238,4 +237,6 @@ async function download(progress, id_pair, keys, filename) {
     });
     setTimeout(() => URL.revokeObjectURL(link.href), 7000);
 }
+
+R.preload().then(on_load);
 

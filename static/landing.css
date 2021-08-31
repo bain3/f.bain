@@ -48,7 +48,7 @@
     left: 50%;
     transform: translateX(-50%);
     animation: 2.5s slidein ease-out forwards;
-    color: var(--bright);
+    color: var(--white);
 }
 
 
@@ -74,4 +74,8 @@ a {
     background: none;
     border: none;
     color: var(--white);
+}
+
+.url {
+    cursor: copy;
 }

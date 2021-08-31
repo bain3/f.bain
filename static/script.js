@@ -100,10 +100,10 @@ function showRevocationDiv() {
 async function storeRevocationToken(v) {
     if (v) {
         window.localStorage.setItem("revocation-" + encodeURI(response.uuid), response.revocationToken);
-        R('out.rt.show').hidden = true;
+        R('out.rt').hidden = true;
     } else {
         window.localStorage.removeItem("revocation-" + encodeURI(response.uuid));
-        R('out.rt.show').hidden = false;
+        R('out.rt').hidden = false;
     }
     window.localStorage.setItem("s", v ? "yes" : "no");
 }

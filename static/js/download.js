@@ -1,5 +1,8 @@
 let downloaded = false;
 
+
+// TODO: Extract file handling to file.js, refactor
+
 async function getMeta(progress, id) {
     let xhr = new XMLHttpRequest();
     let meta = undefined;

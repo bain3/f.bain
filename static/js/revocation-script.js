@@ -1,3 +1,6 @@
+
+// TODO: use referencer.js, refactor
+
 function getID(url) {
     let id = "";
     if (url.length === 5) {

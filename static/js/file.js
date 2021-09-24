@@ -160,6 +160,24 @@ class CryptoPair {
         return cipher;
     }
 
+    /**
+     * Base64 decode and decrypt a filename.
+     * @param {string} cipher
+     * @returns {Promise<string>} filename
+     */
+    async decryptFilename(cipher) {
+        const b64 = atob(meta.filename);
+        const decoded_cipher = new Uint8Array(b64.length);
+        for (let i = 0; i < len; i++) decoded_cipher[i] = b64.charCodeAt(i);
+
+        let subtle = (window.crypto || window.msCrypto).subtle;
+        return new TextDecoder().decode(await subtle.decrypt(
+            {name: "AES-GCM", iv: this.filenameIV, tagLength: 128},
+            this.key,
+            decoded_cipher
+        ));
+    }
+
 }
 
 
@@ -180,7 +198,8 @@ class LocalFile {
      * use the current address as the host, notice no / at the end
      * @param {ProgressHandler} progressHandler optional handler for progress updates
      *
-     * @return {Object} object containing the uuid, revocationToken, and password
+     * @return {Promise<{uuid: string, revocationToken: string, password: string}>}
+     *  object containing the uuid, revocationToken, and password
      */
     async upload(keyLength, host, progressHandler) {
         if (host === undefined) host = "";  // set default for host if not provided
@@ -214,7 +233,7 @@ class LocalFile {
         progressHandler({statusText: "encrypting file"});
         let encryptedData;
         try {
-          encryptedData = await this._getEncryptedBlob(keyPair, progressHandler);
+            encryptedData = await this._getEncryptedBlob(keyPair, progressHandler);
         } catch (e) {
             console.log(e);
             throw "failed to encrypt file contents";
@@ -264,7 +283,7 @@ class LocalFile {
      * @param {string} host
      * @param {Blob} encryptedData
      * @param {string} encryptedFilename
-     * @param {Array} saltArray array of ints, each representing a byte
+     * @param {Array<number>} saltArray array of ints, each representing a byte
      * @param {ProgressHandler} progressHandler
      * @returns {Promise<Object>} success response from the server
      * @private
@@ -299,5 +318,73 @@ class LocalFile {
             xhr.send(encryptedData);
         });
         return await promise;
+    }
+}
+
+
+/** Represents an uploaded file */
+class ForeignFile {
+
+    /**
+     * @readonly
+     * @type string
+     */
+    host;
+
+    /**
+     * @readonly
+     * @type string
+     */
+    id;
+
+    /**
+     * @readonly
+     * @type string
+     */
+    filename;
+
+    /**
+     * @readonly
+     * @type CryptoPair
+     * @private
+     */
+    _keyPair;
+
+    /**
+     * Constructs an instance from a host and an ID
+     * @param {string} host host
+     * @param {string} id id
+     * @param {string} password password for key derivation
+     */
+    async constructor(host, id, password) {
+        this.host = host;
+        this.id = id;
+
+        const resp = await fetch(`${host}/${this.id}/meta`);
+        if (!resp.ok) throw "could not fetch information";
+        const resp_json = await resp.json();
+
+        try {
+            this._keyPair = await CryptoPair.fromPassword(password, resp_json.salt);
+        } catch (e) {
+            console.log(e);
+            throw "failed to create key pair";
+        }
+
+        try {
+            this.filename = await this._keyPair.decryptFilename(resp_json.filename);
+        } catch (e) {
+            console.log(e);
+            throw "failed to decrypt file name, bad key?";
+        }
+    }
+
+    /**
+     * Decrypted file contents
+     * @param progressHandler
+     * @returns {Promise<Blob>} file data
+     */
+    async getData(progressHandler) {
+        // TODO
     }
 }

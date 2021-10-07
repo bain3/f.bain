@@ -4,9 +4,9 @@ const BLOCK_SIZE = 5242880;
 
 /**
  * Progress handler
- * @name ProgressHandler
- * @function
+ * @callback ProgressHandler
  * @param {Object} progressEvent
+ * @returns {void}
  */
 
 /**
@@ -132,7 +132,7 @@ class CryptoPair {
     }
 
     /**
-     * Encrypts a block of 5242880 (5MiB) of bytes according to the f.bain protocol.
+     * Encrypts a block of 5242880 (5MiB) bytes according to the f.bain protocol.
      * Generates a new IV for next use.
      * @param {Uint8Array} blockData 5242880
      * @returns {Promise<ArrayBuffer>} ciphertext
@@ -166,16 +166,30 @@ class CryptoPair {
      * @returns {Promise<string>} filename
      */
     async decryptFilename(cipher) {
-        const b64 = atob(meta.filename);
+        const b64 = atob(cipher);
         const decoded_cipher = new Uint8Array(b64.length);
-        for (let i = 0; i < len; i++) decoded_cipher[i] = b64.charCodeAt(i);
+        for (let i = 0; i < b64.length; i++) decoded_cipher[i] = b64.charCodeAt(i);
 
-        let subtle = (window.crypto || window.msCrypto).subtle;
+        const subtle = (window.crypto || window.msCrypto).subtle;
         return new TextDecoder().decode(await subtle.decrypt(
             {name: "AES-GCM", iv: this.filenameIV, tagLength: 128},
             this.key,
             decoded_cipher
         ));
+    }
+
+    /**
+     * Decrypts a block of 5242928 (~5MiB) bytes according to the f.bain protocol.
+     * @param {ArrayBuffer} cipher
+     * @returns {Promise<ArrayBuffer>} block
+     */
+    async decryptBlock(cipher) {
+        const subtle = (window.crypto || window.msCrypto).subtle;
+        const d_block = await subtle.decrypt(
+            {"name": "AES-GCM", "iv": this._currentIV, "tagLength": 128},
+            this.key, cipher);
+        this._currentIV = new Uint8Array(d_block.slice(0, 32)); // update iv for next iteration
+        return d_block.slice(32, cipher.byteLength);
     }
 
 }
@@ -272,7 +286,6 @@ class LocalFile {
 
             outputBlob = new Blob([outputBlob, cipher]);
 
-            // noinspection JSValidateTypes
             progressHandler({progress: Math.min(offset, this.file.size) / this.file.size * 0.5});
         }
         return outputBlob;
@@ -302,10 +315,8 @@ class LocalFile {
                 }
             });
             // update progress bar
-            // noinspection JSValidateTypes
             xhr.upload.addEventListener("progress", p => progressHandler({progress: 0.5 + (p.loaded / p.total / 2)}));
 
-            // noinspection JSValidateTypes
             progressHandler({status: "neutral", statusText: "uploading..."})
             xhr.open("POST", `${host}/new`);
             xhr.setRequestHeader("Content-Type", "application/octet-stream");
@@ -351,40 +362,117 @@ class ForeignFile {
     _keyPair;
 
     /**
+     * @param {string} host
+     * @param {string} id
+     * @param {CryptoPair} keyPair
+     * @param {string} filename
+     */
+    constructor(host, id, keyPair, filename) {
+        this.host = host;
+        this.id = id;
+        this._keyPair = keyPair;
+        this.filename = filename;
+    }
+
+    /**
      * Constructs an instance from a host and an ID
      * @param {string} host host
      * @param {string} id id
      * @param {string} password password for key derivation
      */
-    async constructor(host, id, password) {
-        this.host = host;
-        this.id = id;
-
-        const resp = await fetch(`${host}/${this.id}/meta`);
+    static async fromIDPair(host, id, password) {
+        const resp = await fetch(`${host}/${id}/meta`);
         if (!resp.ok) throw "could not fetch information";
         const resp_json = await resp.json();
 
+        let keyPair;
         try {
-            this._keyPair = await CryptoPair.fromPassword(password, resp_json.salt);
+            keyPair = await CryptoPair.fromPassword(password, new Uint8Array(resp_json.salt));
         } catch (e) {
             console.log(e);
             throw "failed to create key pair";
         }
 
+        let filename;
         try {
-            this.filename = await this._keyPair.decryptFilename(resp_json.filename);
+            filename = await keyPair.decryptFilename(resp_json.filename);
         } catch (e) {
             console.log(e);
             throw "failed to decrypt file name, bad key?";
         }
+        return new ForeignFile(host, id, keyPair, filename);
+    }
+
+    /**
+     * Get size of the file
+     * @returns {Promise<number>}
+     */
+    async getSize() {
+        const resp = await fetch(`${this.host}/${this.id}/raw`, {method: "HEAD"});
+        if (!resp.ok) return -1;
+        return Number(resp.headers.get("content-length"));
     }
 
     /**
      * Decrypted file contents
-     * @param progressHandler
+     * @param {ProgressHandler} progress
      * @returns {Promise<Blob>} file data
      */
-    async getData(progressHandler) {
-        // TODO
+    async getData(progress) {
+        progress({statusText: "Downloading file"});
+        let cipher;
+        try {
+            cipher = await this.getRawData(progress);
+        } catch (e) {
+            progress({status: "error", statusText: `failed to fetch data (code: ${e})`});
+        }
+        progress({statusText: "Decrypting file"});
+        let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
+        try {
+            let offset = 0;
+            while (offset < cipher.size) {
+                const block = await cipher.slice(offset, offset + 5242928).arrayBuffer();
+                const d_block = await this._keyPair.decryptBlock(block);
+
+                output_blob = new Blob([output_blob, d_block]);
+
+                offset += 5242928;
+                progress({progress: 0.5 + offset / cipher.size});
+            }
+        } catch (e) {
+            console.log(e);
+            progress({
+                status: "error",
+                statusText: "Decryption error"
+            });
+        }
+        return output_blob;
+    }
+
+    /**
+     * Fetches encrypted data
+     * @param {ProgressHandler} progress
+     * @returns {Promise<Blob>}
+     */
+    async getRawData(progress) {
+        const xhr = new XMLHttpRequest();
+        const promise = new Promise((resolve, reject) => { // fuck callbacks
+            xhr.addEventListener("readystatechange", function () {
+                if (this.readyState === this.DONE) {
+                    if (this.status === 200) {
+                        resolve(this.response);
+                    } else {
+                        reject(this.status);
+                    }
+                }
+            });
+            xhr.addEventListener("progress", function (p) {
+                progress({progress: 0.10 + p.loaded / p.total * 0.40});
+            })
+            xhr.open("GET", `${this.host}/${this.id}/raw`);
+            xhr.responseType = "blob";
+            xhr.send();
+        });
+        return await promise;
     }
 }

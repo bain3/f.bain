@@ -74,6 +74,8 @@ async function sendRequest(file) {
     showRevocationDiv();
     R('screen.1').style.visibility = 'hidden';
     R('screen.2').hidden = false;
+
+    window.history.pushState(null, "Download", R('out.url').innerText);
 }
 
 function copyToClipboard(el) {

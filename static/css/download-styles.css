@@ -4,6 +4,8 @@
     justify-items: center;
     align-items: center;
     max-width: min(500px, 90vw);
+    margin-top: 2rem;
+    margin-bottom: 2rem;
 }
 
 .info {
@@ -54,4 +56,9 @@
     width: 0;
     background: var(--success);
     filter: opacity(80%);
+}
+
+.image-preview {
+    max-width: 90vw;
+    max-height: 75vh;
 }

@@ -44,32 +44,62 @@ async function on_load() {
             status: "error",
             statusText: e
         });
+        return;
     }
     R('file.name').innerText = file.filename;
-    R('file.size').innerText = getSizeHumanReadable(await file.getSize());
+    const cipher_size = await file.getSize();
+    R('file.size').innerText = getSizeHumanReadable(cipher_size);
 
-    progress.update({
-        statusText: "Download"
-    });
-    // -- set event handler on button --
-    R('button').addEventListener('click', async () => {
-        if (!downloaded) {
-            downloaded = true;
-            const blob = await file.getData(p => progress.update(p));
-            // -- create download for the plaintext --
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = file.filename;
-            document.body.append(link);
-            link.click();
-            link.remove();
-            progress.update({
-                status: "success",
-                statusText: "File downloaded"
-            });
-            setTimeout(() => URL.revokeObjectURL(link.href), 7000);
-        }
-    });
+    // if the file is smaller than 10mb
+    const filenameLower = file.filename.toLowerCase();
+    if (cipher_size <= 10000000 && (filenameLower.endsWith(".jpg") || filenameLower.endsWith(".png"))) {
+        downloaded = true;
+        const blob = await file.getData(p => progress.update(p));
+        progress.update({
+            status: "success",
+            statusText: "Save"
+        });
+        const downloaded_url = URL.createObjectURL(blob);
+        R('preview.image').src = downloaded_url;
+        R('preview.image').hidden = false;
+        let saved = false;
+        R('button').addEventListener('click', () => {
+            if (!saved) {
+                saved = true;
+                downloadBlobURL(downloaded_url, file.filename);
+                progress.update({
+                    status: "success",
+                    statusText: "File saved"
+                });
+            }
+        })
+    } else {
+        progress.update({
+            statusText: "Download"
+        });
+        // -- set event handler on button --
+        R('button').addEventListener('click', async () => {
+            if (!downloaded) {
+                downloaded = true;
+                const blob = await file.getData(p => progress.update(p));
+                downloadBlobURL(URL.createObjectURL(blob), file.filename);
+                progress.update({
+                    status: "success",
+                    statusText: "File downloaded"
+                });
+            }
+        });
+    }
+}
+
+function downloadBlobURL(blobUrl, filename) {
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 7000);
 }
 
 R.preload().then(on_load);

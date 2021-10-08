@@ -443,7 +443,7 @@ class ForeignFile {
                 output_blob = new Blob([output_blob, d_block]);
 
                 offset += 5242928;
-                progress({progress: 0.5 + offset / cipher.size});
+                progress({progress: Math.min(0.5 + offset / cipher.size, 1)});
             }
         } catch (e) {
             console.log(e);

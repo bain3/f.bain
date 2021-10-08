@@ -1,6 +1,6 @@
 let downloaded = false;
 
-async function getSizeHumanReadable(size) {
+function getSizeHumanReadable(size) {
     let magnitudes = ["", "K", "M", "G", "T"];
     let current_mag = 0;
     while (size >= 1000 && current_mag < 4) {
@@ -46,7 +46,7 @@ async function on_load() {
         });
     }
     R('file.name').innerText = file.filename;
-    R('file.size').innerText = await getSizeHumanReadable(await file.getSize());
+    R('file.size').innerText = getSizeHumanReadable(await file.getSize());
 
     progress.update({
         statusText: "Download"

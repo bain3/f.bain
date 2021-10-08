@@ -70,7 +70,7 @@ async def create_file(request: Request, x_metadata: str = Header(""),
     # get a new uuid
     uuid = None
     while uuid is None or redis.exists(uuid):
-        uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*‘(),") for _ in
+        uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,") for _ in
                         range(UUID_SIZE)])
 
     # save the file

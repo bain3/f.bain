@@ -1,6 +1,5 @@
 let downloaded = false;
 
-
 async function getSizeHumanReadable(size) {
     let magnitudes = ["", "K", "M", "G", "T"];
     let current_mag = 0;
@@ -24,7 +23,10 @@ async function on_load() {
 
     // -- parse url --
     const url = new URL(location.href);
-    const id_pair = [url.pathname.substring(url.pathname.lastIndexOf('/') + 1), url.hash.substring(1)];
+    const id_pair = [
+        decodeURI(url.pathname.substring(url.pathname.lastIndexOf('/') + 1)),
+        decodeURI(url.hash.substring(1))
+    ];
 
     if (id_pair.length === 1 || id_pair[1] === "") {
         progress.update({

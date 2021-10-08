@@ -1,5 +1,5 @@
 // all available characters in a url
-let strength = 12;
+let strength = 14;
 let max_file_size = 0;
 let response = "";
 

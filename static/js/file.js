@@ -1,4 +1,4 @@
-const BASE73 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$–_.+!*'(),";
+const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,";
 const PBKDF2_ITERATIONS = 50000;
 const BLOCK_SIZE = 5242880;
 
@@ -21,10 +21,10 @@ function generatePassword(length) {
     let output = "";
     while (output.length < length) {
         for (let i = 0; i < array.length; i++) {
-            // skip values that are larger than the biggest multiple of 73
-            // otherwise we would have a higher probability of getting values between 0 and 36
-            if (array[i] > 219) continue;
-            output += BASE73[Math.abs(array[i] % 73)];
+            // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
+            // otherwise we wouldn't have a good distribution
+            if (array[i] > Math.floor(255/KEY_ALPHABET.length)*KEY_ALPHABET.length) continue;
+            output += KEY_ALPHABET[Math.abs(array[i] % KEY_ALPHABET.length)];
             if (output.length === length) break;
         }
     }
@@ -225,7 +225,13 @@ class LocalFile {
         const salt = new Uint8Array(32);
         cryptoObj.getRandomValues(salt);
 
-        const password = generatePassword(keyLength);
+        // generate a password and make sure the end character is suitable for messaging apps
+        let password;
+        do {
+            password = generatePassword(keyLength);
+        } while (",.".includes(password[password.length-1]));
+
+
 
         let keyPair;
         try {

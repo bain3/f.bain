@@ -23,8 +23,8 @@ and only you have the key to decrypt the data.
 
 ### Long description
 #### Upload
-Once the user selects a file, the javascript will generate a random custom base73 string as a password.
-The custom base73 format makes it so the urls are as dense as possible without sacrificing security.
+Once the user selects a file, the javascript will generate a random string as a password from a key alphabet.
+The special key alphabet maximises density of data in the url without sacrificing security.
 It will also generate "salt" for the PBKDF2 key derivation function. This salt will be later sent to
 the server as metadata. It is essentially to protect other files on the server. This way an attacker
 can't steal all the files stored on the server and break all the passwords in bulk.

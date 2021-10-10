@@ -4,56 +4,10 @@
     <!-- TODO: refactor css -->
     <meta charset="UTF-8">
     <title>f.bain - revoke</title>
-    <style>
-        body {
-            background-color: #13131b;
-            font-family: sans-serif;
-            color: #7f7f7f;
-        }
-
-        .center {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            margin: auto;
-            text-align: center;
-        }
-
-        a {
-            font-size: small;
-            text-decoration: none;
-            color: #bfbfbf;
-        }
-
-        input[type=text] {
-            text-align: center;
-            width: 100%;
-            max-width: 30em;
-            background: #2A2A3C;
-            border-style:none;
-            padding: 0.5em;
-            color: white;
-            display: block;
-            margin: 1em auto;
-        }
-
-        button {
-            background: #DB324D;
-            color: white;
-            border: none;
-            padding: 5px 30px;
-            border-radius: 30px;
-        }
-
-        b {
-            color: #bfbfbf;
-        }
-
-        #errors {
-            color: #DB324D;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/revoke.css">
+    <script defer src="js/referencer.js"></script>
+    <script defer src="js/revocation-script.js"></script>
 </head>
 <body>
 <div class="center">
@@ -61,11 +15,10 @@
     <p>
         You can choose between multiple forms of input. The whole link to the file, or just the 5 character id which is located after the last slash. You can find the link structure below. <b>The revocation token will be automatically filled in if it was found in the browser.</b>
     </p>
-    <input id="urlinput" type="text" placeholder="https://f.bain.cz/<id>(#<key>)" oninput="findRt(this.value);"/>
-    <input id="rtinput" type="text" placeholder="Revocation token"/>
-    <button onclick="revokeFile();" id="btn">Revoke</button>
-    <p id="errors" hidden></p>
-    <script src="js/revocation-script.js"></script>
+    <input x-r="input.url" type="text" placeholder="https://f.bain.cz/<id>(#<key>)" oninput="findRt(this.value);"/>
+    <input x-r="input.token" type="text" placeholder="Revocation token"/>
+    <button onclick="revokeFile();" x-r="btn">Revoke</button>
+    <p class="errors" x-r="errors" hidden></p>
 </div>
 </body>
 </html>

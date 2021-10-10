@@ -1,6 +1,4 @@
 
-// TODO: use referencer.js, refactor
-
 function getID(url) {
     let id = "";
     if (url.length === 5) {
@@ -16,13 +14,13 @@ function getID(url) {
 }
 
 async function revokeFile() {
-    let err = document.getElementById("errors");
-    let id = getID(document.getElementById("urlinput").value);
+    let err = R("errors");
+    let id = getID(R('input.url').value);
     if (id === "") {
         err.innerText = "Error: Could not find a valid ID in input.";
         err.hidden = false;
     }
-    let rt = document.getElementById("rtinput").value;
+    let rt = R('input.token').value;
     if (rt === "") {
         err.innerText = "Error: No revocation token was found.";
         err.hidden = false;
@@ -42,13 +40,13 @@ async function revokeFile() {
             err.hidden = false;
             break;
         case 200:
-            document.getElementById("btn").style.background = "#52B788";
-            document.getElementById("btn").innerText = "Revoked!";
+            R("btn").style.background = "#52B788";
+            R("btn").innerText = "Revoked!";
             err.hidden = true;
             window.localStorage.removeItem("revocation-" + id);
             setTimeout(()=> {
-                document.getElementById("btn").style.background = "#DB324D";
-                document.getElementById("btn").innerText = "Revoke";
+                R("btn").style.background = "#DB324D";
+                R("btn").innerText = "Revoke";
             }, 5000);
             break;
         default:
@@ -60,12 +58,14 @@ async function revokeFile() {
 function findRt(url) {
     if (url.includes("%")) {
         url = decodeURI(url);
-        document.getElementById("urlinput").value = url;
+        R('input.url').value = url;
     }
     let id = getID(url);
-    if (id === null) return;
+    if (id === "") return;
 
     let rt = window.localStorage.getItem("revocation-" + id);
     if (rt === null) return;
-    document.getElementById("rtinput").value = rt;
+    R('input.token').value = rt;
 }
+
+R.preload();

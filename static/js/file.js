@@ -17,9 +17,9 @@ const BLOCK_SIZE = 5242880;
 function generatePassword(length) {
     let array = new Uint8Array(length);
     let cryptoObj = window.crypto || window.msCrypto;
-    cryptoObj.getRandomValues(array);
     let output = "";
     while (output.length < length) {
+        cryptoObj.getRandomValues(array);
         for (let i = 0; i < array.length; i++) {
             // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
             // otherwise we wouldn't have a good distribution

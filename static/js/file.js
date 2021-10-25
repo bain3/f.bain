@@ -23,7 +23,7 @@ function generatePassword(length) {
         for (let i = 0; i < array.length; i++) {
             // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
             // otherwise we wouldn't have a good distribution
-            if (array[i] > Math.floor(255/KEY_ALPHABET.length)*KEY_ALPHABET.length) continue;
+            if (array[i] > Math.floor(255 / KEY_ALPHABET.length) * KEY_ALPHABET.length) continue;
             output += KEY_ALPHABET[Math.abs(array[i] % KEY_ALPHABET.length)];
             if (output.length === length) break;
         }
@@ -229,8 +229,7 @@ class LocalFile {
         let password;
         do {
             password = generatePassword(keyLength);
-        } while (",.".includes(password[password.length-1]));
-
+        } while (",.".includes(password[password.length - 1]));
 
 
         let keyPair;
@@ -480,5 +479,17 @@ class ForeignFile {
             xhr.send();
         });
         return await promise;
+    }
+
+    /**
+     * Deletes the file from remote server
+     * @param {string} revocationToken
+     * @returns {boolean} boolean signifying if the file was deleted
+     */
+    async delete(revocationToken) {
+        let resp = await fetch("/" + this.id, {
+            method: "DELETE", body: JSON.stringify({"revocation_token": revocationToken})
+        });
+        return resp.status === 200;
     }
 }

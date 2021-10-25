@@ -1,12 +1,28 @@
 .container {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-items: center;
     align-items: center;
     max-width: min(500px, 90vw);
     margin-top: 2rem;
     margin-bottom: 2rem;
 }
+
+.file-container {
+    display: flex;
+    flex-direction: row;
+    justify-items: center;
+    align-items: center;
+}
+
+.settings-container {
+    display: flex;
+    align-items: center;
+    justify-items: center;
+    width: 100%;
+    height: 1em;
+}
+
 
 .info {
     margin-left: 1em;
@@ -50,6 +66,7 @@
 .btn-progress {
     transition: width ease-in-out 100ms;
     margin-left: -10px;
+    margin-top: -1px;
     position: absolute;
     height: calc(0.8rem + 10px);
     border-radius: 2rem;
@@ -60,5 +77,47 @@
 
 .image-preview {
     max-width: 90vw;
-    max-height: 75vh;
+    max-height: 60vh;
+}
+
+.settings-btn {
+    background: var(--secondary);
+    width: calc(0.8rem + 3px);
+    margin-left: 0.5rem;
+    height: calc(0.8rem + 3px);
+    padding: 5px;
+    border-radius: 50%;
+}
+
+.settings-btn:hover {
+    filter: brightness(125%);
+    cursor: pointer;
+}
+
+.gear {
+    height: 100%;
+}
+
+button {
+    background: var(--secondary);
+    color: var(--white);
+    border-radius: 1em;
+    border: none;
+    padding: 0.25em;
+    margin: 0 0.25em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+button:disabled {
+    color: var(--primary);
+    cursor: default;
+}
+
+input[type=text] {
+    background: var(--secondary);
+    padding: 0.25em;
+    border: none;
+    color: var(--white);
+
 }

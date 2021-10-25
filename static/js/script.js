@@ -1,7 +1,6 @@
 // all available characters in a url
 let strength = 14;
 let max_file_size = 0;
-let response = "";
 
 // from @mrkelvinli on github, pathing Blob.arrayBuffer for safari.
 (function () {
@@ -67,47 +66,13 @@ async function sendRequest(file) {
         progress_bar.update({status: "error", statusText: e})
         return;
     }
+    progress_bar.update({status: "success", statusText: "redirecting to uploaded file..."});
 
-    R('out.url').innerHTML =
-        `https://${window.location.host}/<span style="color: var(--white)">${resp.uuid}#${resp.password}</span>`;
-    response = resp;
-    showRevocationDiv();
-    R('screen.1').style.visibility = 'hidden';
-    R('screen.2').hidden = false;
-
-    window.history.pushState(null, "Download", R('out.url').innerText);
-}
-
-function copyToClipboard(el) {
-    navigator.clipboard.writeText(el.innerText);
-    document.getElementById("copied-box").hidden = false;
+    // redirect user to the file. pass revocation token in url parameter
+    // (safe because its generated server side anyways)
     setTimeout(() => {
-        document.getElementById("copied-box").hidden = true
-    }, 3000)
-}
-
-function showRevocationDiv() {
-    R('out.rt.value').innerText = response.revocationToken;
-    let s = window.localStorage.getItem("s");
-    if (s === null) {
-        window.localStorage.setItem("s", "yes");
-        s = "yes";
-    }
-    if (s === "yes") {
-        R('out.rt.store').checked = true;
-        storeRevocationToken(true);
-    }
-}
-
-async function storeRevocationToken(v) {
-    if (v) {
-        window.localStorage.setItem("revocation-" + encodeURI(response.uuid), response.revocationToken);
-        R('out.rt').hidden = true;
-    } else {
-        window.localStorage.removeItem("revocation-" + encodeURI(response.uuid));
-        R('out.rt').hidden = false;
-    }
-    window.localStorage.setItem("s", v ? "yes" : "no");
+        window.location = `https://${window.location.host}/${resp.uuid}?rt=${resp.revocationToken}#${resp.password}`;
+    }, 1500);
 }
 
 async function getMaxFileSize() {

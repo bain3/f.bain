@@ -1,4 +1,6 @@
 let downloaded = false;
+let revocationToken = '';
+let fileObject = null;
 
 function getSizeHumanReadable(size) {
     let magnitudes = ["", "K", "M", "G", "T"];
@@ -10,7 +12,18 @@ function getSizeHumanReadable(size) {
     return `${Math.round(size * 10) / 10} ${magnitudes[current_mag]}B`;
 }
 
+function getRevocationToken(url, id) {
+    const urlRevToken = url.searchParams.get('rt');
+    if (urlRevToken !== null) {
+        window.history.replaceState(null, 'Download', `${url.pathname}${url.hash}`);
+        window.localStorage.setItem(`revocation-${id}`, urlRevToken);
+    }
+    return urlRevToken || window.localStorage.getItem(`revocation-${id}`) || '';
+}
+
 async function on_load() {
+
+
     R('button').style.display = 'flex';
     let progress = new Progress({
             status: "neutral",
@@ -27,6 +40,14 @@ async function on_load() {
         decodeURI(url.pathname.substring(url.pathname.lastIndexOf('/') + 1)),
         decodeURI(url.hash.substring(1))
     ];
+
+    revocationToken = getRevocationToken(url, id_pair[0]);
+    if (revocationToken === '') {
+        R('settings.exportToken').innerText = 'Import token';
+        R('settings.exportToken').onclick = importToken;
+        R('settings.deleteFile').disabled = true;
+        R('settings.revocationToken').hidden = false;
+    }
 
     if (id_pair.length === 1 || id_pair[1] === "") {
         progress.update({
@@ -46,6 +67,9 @@ async function on_load() {
         });
         return;
     }
+    fileObject = file;
+    R('settings.button').hidden = false;
+
     R('file.name').innerText = file.filename;
     const cipher_size = await file.getSize();
     R('file.size').innerText = getSizeHumanReadable(cipher_size);
@@ -100,6 +124,46 @@ function downloadBlobURL(blobUrl, filename) {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(blobUrl), 7000);
+}
+
+function toggleSettings() {
+    R('settings.container').hidden = !R('settings.container').hidden;
+}
+
+function importToken() {
+    let token = R('settings.revocationToken.input').value;
+    if (token === '') return;
+    window.localStorage.setItem(`revocation-${fileObject.id}`, token);
+    revocationToken = token;
+    R('settings.exportToken').innerText = 'Export token';
+    R('settings.exportToken').onclick = exportToken;
+    R('settings.deleteFile').disabled = false;
+    R('settings.revocationToken').hidden = true;
+    R('settings.text').innerText = "";
+}
+
+function exportToken() {
+    R('settings.revocationToken').hidden = false;
+    R('settings.revocationToken.input').value = window.localStorage.getItem(`revocation-${fileObject.id}`) || '';
+    R('settings.text').innerText =
+        "Removed revocation token from internal storage. You won't be able to delete this file without it.";
+    R('settings.exportToken').innerText = "Import token";
+    R('settings.exportToken').onclick = importToken;
+}
+
+function deleteFile() {
+    R('settings.deleteFile').innerText = "Are you sure?";
+    R('settings.deleteFile').onclick = async () => {
+        console.log(revocationToken);
+        if (await fileObject.delete(revocationToken)) {
+            window.localStorage.removeItem(`revocation-${fileObject.id}`);
+            window.location = "/";
+        } else {
+            R('settings.deleteFile').innerText = "Delete file";
+            R('settings.deleteFile').onclick = deleteFile;
+            R('settings.text').innerText = "File deletion failed";
+        }
+    };
 }
 
 R.preload().then(on_load);

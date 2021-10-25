@@ -12,19 +12,37 @@
     <script defer src="/js/download.js"></script>
 </head>
 <body>
-<div class="center">
+<div class="center" style="display: flex; align-items: center; flex-direction: column">
     <img src="" x-r="preview.image" alt="image preview" hidden="hidden" class="image-preview"/>
     <div class="container">
-        <img src="file.svg" alt="file" height="90em"/>
-        <div class="info">
-            <p x-r="file.name" class="filename">xJYC8EnJWaWtFu!xJYC8</p>
-            <p x-r="file.size" class="size">!$@&B</p>
-            <noscript style="color: var(--error); font-size: smaller;">
-                Your browser doesn't support javascript. It is necessary to decrypt the file.
-            </noscript>
-            <div class="btn" x-r="button">
-                <p class="btn-text" x-r="prgrs.status">Download</p>
-                <div class="btn-progress" x-r="prgrs.value"></div>
+        <div class="file-container">
+            <img src="file.svg" alt="file" height="90em"/>
+            <div class="info">
+                <p x-r="file.name" class="filename">xJYC8EnJWaWtFu!xJYC8</p>
+                <p x-r="file.size" class="size">!$@&B</p>
+                <noscript style="color: var(--error); font-size: smaller;">
+                    Your browser doesn't support javascript. It is necessary to decrypt the file.
+                </noscript>
+                <div style="display: flex; flex-direction: row;">
+                    <div class="btn" x-r="button">
+                        <p class="btn-text" x-r="prgrs.status">Download</p>
+                        <div class="btn-progress" x-r="prgrs.value"></div>
+                    </div>
+                    <div class="settings-btn" onclick="toggleSettings()" x-r="settings.button" hidden>
+                        <img src="gear.svg" class="gear" alt="settings gear"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div style="width: 100%; margin-top: 2em" hidden x-r="settings.container">
+            <div class="settings-container" x-r="settings.buttons.container">
+                <button style="flex: 1" x-r="settings.exportToken" onclick="exportToken()">Export token</button>
+                <button style="flex: 1" x-r="settings.deleteFile" onclick="deleteFile()">Delete file</button>
+            </div>
+            <div style="width: 100%; font-size: small">
+                <p x-r="settings.text"></p>
+                <p x-r="settings.revocationToken" hidden>Revocation token: <input x-r="settings.revocationToken.input"
+                                                                                  type="text" width="20"></p>
             </div>
         </div>
     </div>

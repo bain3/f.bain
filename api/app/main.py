@@ -91,7 +91,7 @@ async def create_file(request: Request, x_metadata: str = Header(""),
 
     # save metadata and generate a revocation token
     redis.set("metadata-" + uuid, metadata)
-    revocation_token = b64encode(secrets.token_bytes(18))
+    revocation_token = secrets.token_urlsafe(18)
     redis.set("revocation-" + uuid, revocation_token)
 
     # update statistics

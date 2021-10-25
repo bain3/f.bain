@@ -37,21 +37,6 @@
         </div>
         <p x-r="prgrs.status"></p>
     </div>
-
-    <div id="success-div" x-r="screen.2" hidden>
-        <p class="url" x-r="out.url" onclick="copyToClipboard(this);">
-            https://f.bain.cz/nothing
-        </p>
-
-        <input type="checkbox" id="store-rt" x-r="out.rt.store" oninput="storeRevocationToken(this.checked)"
-               style="margin-top: 1em"/>
-        <label for="store-rt">store revocation token in this browser</label>
-
-        <p style="font-size: x-small; margin-top: 0;">(you won't be able to delete the file without it)</p>
-        <p style="margin-bottom: 0;" x-r="out.rt" hidden>Your revocation token is:<br>
-            <span x-r="out.rt.value" style="color: var(--white); cursor: copy;" onclick="copyToClipboard(this)"></span>
-        </p>
-    </div>
 </div>
 <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 20; text-align: center">
     <p style="font-size: small;">Max file size: <span style="color: var(--white)" x-r="filesize">0B</span></p>

@@ -12,9 +12,10 @@
     <link rel="stylesheet" href="css/landing.css">
 </head>
 <body>
-<div id="copied-box" hidden="">Copied!</div>
+<label for="fi" style="opacity: 0;">file input</label>
+<label for="si" style="opacity: 0;">key strength input</label>
 <input type="file" ondrop="dropHandler(event);" x-r="fileInput" onchange="inputHandler(event);" title=" "
-       autocomplete="off" class="file-input">
+       autocomplete="off" class="file-input" id="fi">
 <div class="center click-through" x-r="container">
     <div id="welcome-div" x-r="screen.0">
         <img src="upload.svg" alt="upload file icon"/>
@@ -26,7 +27,7 @@
             Please try again with a different browser.
         </noscript>
         <p class="key-strength">key strength:
-            <input type="number" value="14" min="10" max="128"
+            <input type="number" value="14" min="10" max="128" id="si"
                    onchange="strength=Math.min(parseInt(this.value, 10), 128); this.value=strength;"/>
         </p>
     </div>

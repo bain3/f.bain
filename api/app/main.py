@@ -27,10 +27,10 @@ UUID_SIZE = int(os.getenv("UUID_SIZE", 5))
 STATUS_TOKEN = os.getenv("STATUS_TOKEN", "")
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
-redis = Redis(host=REDIS['host'],
-              port=REDIS['port'],
-              db=REDIS['db'],
-              password=REDIS['password'])
+WEEK_SECONDS = 7 * 24 * 60 * 60
+MONTH_SECONDS = 30 * 24 * 60 * 60
+
+redis = Redis(**REDIS)
 
 redis.setnx("count", 0)
 redis.set("maxfs", MAX_FILE_SIZE)
@@ -90,6 +90,9 @@ async def create_file(request: Request, x_metadata: str = Header(""),
     redis.set("metadata-" + uuid, metadata)
     revocation_token = secrets.token_urlsafe(18)
     redis.set("revocation-" + uuid, revocation_token)
+
+    # default expiration time is one month if not set we assume expiration indefinite
+    redis.set("expire-" + uuid, int(time()) + MONTH_SECONDS)
 
     # update statistics
     redis.incr("count")
@@ -195,7 +198,7 @@ async def delete_file(uuid: str, body: dict = Body({"revocation_token": "", "adm
             and not secrets.compare_digest(redis.get("revocation-" + uuid).decode(), body.get("revocation_token", "")):
         raise HTTPException(status_code=401, detail="ID and token combination is invalid.")
 
-    redis.delete("revocation-" + uuid, "metadata-" + uuid)
+    redis.delete("revocation-" + uuid, "metadata-" + uuid, "expire-" + uuid)
     redis.decr("count")
 
     path = "/mount/upload/" + uuid.encode().hex()

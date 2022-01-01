@@ -11,8 +11,8 @@ services:
     environment:
       # token to protect the /status endpoint, leave empty to make it public
       - STATUS_TOKEN=
-      # token to protect the /max-filesize/{size} endpoint, leave empty to disable the endpoint entirely
-      - MAX_FILE_SIZE_TOKEN=
+      # token to protect admin features, leave empty to disable them entirely
+      - ADMIN_TOKEN=
       # max upload size in bytes
       - MAX_FILE_SIZE=500000000
       # size of uuids for files, increase it to add security or when you're expecting a decent amount of traffic

@@ -1,11 +1,8 @@
-"""
-This is basically all of f.bain. Very simple.
-"""
 import binascii
 import sys
 from random import choice
 from time import time
-from base64 import b64decode, b64encode
+from base64 import b64decode
 import secrets
 import os
 import json
@@ -28,7 +25,7 @@ REDIS = {
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 5 * 1000 ^ 2 * 100))
 UUID_SIZE = int(os.getenv("UUID_SIZE", 5))
 STATUS_TOKEN = os.getenv("STATUS_TOKEN", "")
-MAX_FILE_SIZE_TOKEN = os.getenv("MAX_FILE_SIZE_TOKEN", "")
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
 
 redis = Redis(host=REDIS['host'],
               port=REDIS['port'],
@@ -126,7 +123,7 @@ async def get_max_filesize():
 
 @app.post("/max-filesize/{new_max}")
 async def set_max_filesize(new_max: str, authorization: str = Header("")):
-    if not MAX_FILE_SIZE_TOKEN or not secrets.compare_digest(authorization, MAX_FILE_SIZE_TOKEN):
+    if not ADMIN_TOKEN or not secrets.compare_digest(authorization, ADMIN_TOKEN):
         raise HTTPException(status_code=401)
 
     # convert to bytes
@@ -190,11 +187,12 @@ def get_raw(uuid: str):
 
 
 @app.delete("/{uuid}")
-async def delete_file(uuid: str, body: dict = Body({"revocation_token": ""})):
+async def delete_file(uuid: str, body: dict = Body({"revocation_token": "", "admin_token": ""})):
     if not redis.exists("revocation-" + uuid):
         raise HTTPException(status_code=404)
 
-    if redis.get("revocation-" + uuid).decode() != body.get("revocation_token", ""):
+    if (ADMIN_TOKEN and not secrets.compare_digest(body.get("admin_token", ""), ADMIN_TOKEN)) \
+            and not secrets.compare_digest(redis.get("revocation-" + uuid).decode(), body.get("revocation_token", "")):
         raise HTTPException(status_code=401, detail="ID and token combination is invalid.")
 
     redis.delete("revocation-" + uuid, "metadata-" + uuid)

@@ -1,6 +1,11 @@
 let downloaded = false;
 let revocationToken = '';
 let fileObject = null;
+let expire_index = 0;
+
+function secondsToDays(seconds) {
+    return Math.ceil(seconds/60/60/24);
+}
 
 function getSizeHumanReadable(size) {
     let magnitudes = ["", "K", "M", "G", "T"];
@@ -128,6 +133,9 @@ function downloadBlobURL(blobUrl, filename) {
 
 function toggleSettings() {
     R('settings.container').hidden = !R('settings.container').hidden;
+    if (R('settings.container').hidden === false && revocationToken.length > 0) {
+        loadExpire()
+    }
 }
 
 function importToken() {
@@ -140,6 +148,7 @@ function importToken() {
     R('settings.deleteFile').disabled = false;
     R('settings.revocationToken').hidden = true;
     R('settings.text').innerText = "";
+    loadExpire();
 }
 
 function exportToken() {
@@ -164,6 +173,28 @@ function deleteFile() {
             R('settings.text').innerText = "File deletion failed";
         }
     };
+}
+
+async function setExpire() {
+    let now = Math.round(new Date().getTime()/1000);
+    let expirations = [now+7*24*60*60, now+30*24*60*60, -1];
+    let expire_in = expirations[(expire_index++)%3];
+    if (await fileObject.set_expires_at(revocationToken, expire_in)) {
+        if (expire_in > 0) R('settings.expiration').innerText = `Expires in: ${secondsToDays(expire_in-now)} days`;
+        else R('settings.expiration').innerText = "Expires in: never";
+    }
+}
+
+async function loadExpire() {
+    let now = Math.round(new Date().getTime()/1000);
+    let expiration = await fileObject.expires_at(revocationToken);
+    if (expiration === -2) {
+        R('settings.text').innerText = "Failed to fetch expiration data";
+    } else if (expiration === -1) {
+        R('settings.expiration').innerText = "Expires in: never";
+    } else {
+        R('settings.expiration').innerText = `Expires in: ${secondsToDays(expiration-now)} days`;
+    }
 }
 
 R.preload().then(on_load);

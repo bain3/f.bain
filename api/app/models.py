@@ -13,11 +13,14 @@ class FileSizeLimitResponse(BaseModel):
     max: int
 
 
-class DeleteFileRequest(BaseModel):
-    revocation_token: Optional[str]
-    admin_token: Optional[str]
+class ExpirationRequest(BaseModel):
+    expires_at: int
 
 
 class FileMeta(BaseModel):
     salt: List[int]
     filename: str
+
+
+class ExpirationResponse(BaseModel):
+    expires_at: int

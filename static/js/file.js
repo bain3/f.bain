@@ -484,11 +484,43 @@ class ForeignFile {
     /**
      * Deletes the file from remote server
      * @param {string} revocationToken
-     * @returns {boolean} boolean signifying if the file was deleted
+     * @returns {Promise<boolean>} boolean signifying if the file was deleted
      */
     async delete(revocationToken) {
         let resp = await fetch("/" + this.id, {
-            method: "DELETE", body: JSON.stringify({"revocation_token": revocationToken})
+            method: "DELETE", headers: {authorization: revocationToken}
+        });
+        return resp.status === 200;
+    }
+
+    /**
+     * Expiration property
+     * @param {string} revocationToken
+     * @returns {Promise<number>} time at which the file expires (unix seconds timestamp); -2 if an error occured
+     */
+    async expires_at(revocationToken) {
+        let resp = await fetch(`/${this.id}/expire`, {
+            headers: {authorization: revocationToken}
+        });
+        if (resp.ok) {
+            let contents = await resp.json();
+            return contents.expires_at;
+        } else {
+            return -2;
+        }
+    }
+
+    /**
+     * Set new expiration date
+     * @param {string} revocationToken
+     * @param {number} timestamp unix seconds timestamp at which the file should expire
+     * @returns {Promise<boolean>} booleans signifying if the new expiration date was set
+     */
+    async set_expires_at(revocationToken, timestamp) {
+        let resp = await fetch(`/${this.id}/expire`, {
+            method: "PUT",
+            body: JSON.stringify({"expires_at": timestamp}),
+            headers: {authorization: revocationToken}
         });
         return resp.status === 200;
     }

@@ -38,9 +38,9 @@ Next up is encrypting the file using [AES in GCM mode][aesgcm]. Since we want to
 split it into blocks of 5 megabytes, and generate new ivs for every new block, which we add to the start 
 of the previous block.
 ```
-[iv1][data (encrypted using og iv)][tag]
-[iv2][data (encrypted using iv1)  ][tag]
-[iv3][data (encrypted using iv2)  ][tag]
+[iv1 + data (encrypted using og iv)][tag]
+[iv2 + data (encrypted using iv1)  ][tag]
+[iv3 + data (encrypted using iv2)  ][tag]
 ...
 ```
 Each block will end up being `5242928` bytes long.

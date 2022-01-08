@@ -37,4 +37,4 @@ if __name__ == '__main__':
             deleted += check_file(file.name)
         if deleted > 0:
             print(f"Deleted {deleted} files", flush=True)
-        time.sleep(10)
+        time.sleep(3600)

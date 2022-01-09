@@ -26,9 +26,17 @@ def get_status(authorization: str = Header(None)):
         raise HTTPException(status_code=401)
 
     dir_ = '/mount/upload/'
+    count = 0
+    total_size = 0
+    file: os.DirEntry
+    for file in os.scandir(dir_):
+        if file.is_file():
+            total_size += file.stat().st_size
+            count += 1
+
     return {
-        "files": int(redis.get("count")),
-        "total_disk_usage": sum([os.path.getsize(dir_ + f) for f in os.listdir(dir_) if os.path.isfile(dir_ + f)]),
+        "files": count,
+        "total_disk_usage": total_size,
         "worker_up_time": time() - worker_start_time
     }
 

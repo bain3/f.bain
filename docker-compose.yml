@@ -10,6 +10,7 @@ services:
       - "./mount:/mount"
     environment:
       # token to protect the /status endpoint, leave empty to make it public
+      # the endpoint can be expensive, so it's recommended to make it private for large deployments
       - STATUS_TOKEN=
       # token to protect admin features, leave empty to disable them entirely
       - ADMIN_TOKEN=

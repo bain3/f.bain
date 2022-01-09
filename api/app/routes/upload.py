@@ -65,7 +65,4 @@ async def create_file(request: Request, x_metadata: str = Header(""),
     # default expiration time is one month if not set we assume expiration indefinite
     redis.set("expire-" + uuid, int(time()) + MONTH_SECONDS)
 
-    # update statistics
-    redis.incr("count")
-
     return {"uuid": uuid, "revocation_token": revocation_token}

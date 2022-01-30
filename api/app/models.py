@@ -22,5 +22,9 @@ class FileMeta(BaseModel):
     filename: str
 
 
+class FileMetaUpload(FileMeta):
+    content_length: int
+
+
 class ExpirationResponse(BaseModel):
     expires_at: int

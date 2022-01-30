@@ -37,4 +37,11 @@ if __name__ == '__main__':
             deleted += check_file(file.name)
         if deleted > 0:
             print(f"Deleted {deleted} files", flush=True)
+
+        # clean up old unfinished sessions
+        for partial in os.scandir("/mount/partial"):
+            if partial.name == ".keep":
+                continue
+            if not redis.exists("session-" + partial.name):
+                os.remove("/mount/partial/" + partial.name)
         time.sleep(3600)

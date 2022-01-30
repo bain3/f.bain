@@ -29,7 +29,7 @@ def get_status(authorization: str = Header(None)):
     total_size = 0
     file: os.DirEntry
     for file in os.scandir(dir_):
-        if file.is_file():
+        if file.is_file() and file.name != ".keep":
             total_size += file.stat().st_size
             count += 1
 

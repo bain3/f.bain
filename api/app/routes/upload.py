@@ -1,14 +1,13 @@
-import os
 import logging
+import os
+import secrets
+from random import choice
 
 import aiofiles
-from random import choice
-import secrets
-
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from ..db import redis
-from ..models import FileMeta, FileMetaUpload, SessionToken
+from ..models import FileMeta, SessionToken
 
 UUID_SIZE = int(os.getenv("UUID_SIZE", 5))
 MONTH_SECONDS = 30 * 24 * 60 * 60
@@ -59,9 +58,9 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
                 redis.hdel("session:" + session, "lock")
 
     if size < 0:
+        redis.delete("session:" + session)
         await aiofiles.os.remove("/mount/partial/" + session)
         await socket.send_json({"code": 414, "detail": "Uploaded more data than declared"})
-        redis.delete("session:" + session)
 
     elif size > 0:
         # this only happens if the session expired
@@ -87,7 +86,7 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
 
 
 @router.post("/upload", summary="Create a new session for uploading", response_model=SessionToken)
-async def make_session(body: FileMetaUpload):
+async def make_session(body: FileMeta):
     if body.content_length > int(redis.get("maxfs")):
         raise HTTPException(status_code=422, detail="File too large")
 
@@ -96,7 +95,7 @@ async def make_session(body: FileMetaUpload):
         session_token = secrets.token_hex(16)
     redis.hset("session:" + session_token, mapping={
         "size": body.content_length,
-        "meta": FileMeta.construct(**body.dict()).json(),
+        "meta": body.json(),
         "block": 0
     })
     redis.expire("session:" + session_token, 7200)

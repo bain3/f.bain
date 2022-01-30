@@ -3,9 +3,9 @@ import os
 import secrets
 import time
 
+import aiofiles
 from fastapi import APIRouter, HTTPException, Header
 from fastapi.responses import HTMLResponse, FileResponse
-import aiofiles
 
 from ..db import redis
 from ..models import FileMeta, Expiration

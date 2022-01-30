@@ -10,7 +10,6 @@ REDIS = {
     "db": 0,
     "password": None
 }
-CURRENT_TIME = time.time()
 
 redis = Redis(**REDIS)
 
@@ -27,7 +26,6 @@ if __name__ == '__main__':
     # explicitly flush because of nohup
     print("Started cleanup script", flush=True)
     while True:
-        CURRENT_TIME = time.time()
         deleted = 0
         for file in os.scandir("/mount/upload"):
             if file.name == ".keep":

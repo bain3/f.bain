@@ -40,7 +40,7 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
     async with aiofiles.open("/mount/partial/" + session, 'ab+') as f:
         try:
             while size > 0:
-                await socket.send_json({"code": 101, "block": block_num})
+                await socket.send_json({"code": 100, "block": block_num})
 
                 block = await socket.receive_bytes()
                 await f.write(block)
@@ -82,7 +82,7 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
 
         await aiofiles.os.rename("/mount/partial/" + session, "/mount/upload/" + uuid.encode().hex())
 
-        await socket.send_json({"code": 200, "uuid": uuid, "revocation_token": revocation_token})
+        await socket.send_json({"code": 201, "uuid": uuid, "revocation_token": revocation_token})
 
 
 @router.post("/upload", summary="Create a new session for uploading", response_model=SessionToken)

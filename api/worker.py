@@ -17,7 +17,11 @@ redis = Redis(**REDIS)
 def check_file(filename: str) -> int:
     id_ = bytes.fromhex(filename).decode()
     if not redis.exists("file:" + id_):
-        os.remove("/mount/upload/" + filename)
+        try:
+            os.remove("/mount/upload/" + filename)
+        except OSError:
+            print(f"Unable to delete file {id_}", flush=True)
+            return 0
         return 1
     return 0
 

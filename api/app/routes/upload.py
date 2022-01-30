@@ -43,14 +43,17 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
                 await socket.send_json({"code": 100, "block": block_num})
 
                 block = await socket.receive_bytes()
-                await f.write(block)
-                block_num += 1
-                size -= len(block)
 
                 if not redis.expire("session:" + session, 7200):
                     # the session expired in during uploading
                     size = -1
                     await socket.send_json({"code": 404, "detail": "Session expired"})
+                    break
+                else:
+                    await f.write(block)
+                    block_num += 1
+                    size -= len(block)
+
         finally:
             if redis.exists("session:" + session):
                 redis.hset("session:" + session, "size", size)

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ class FileSizeLimitResponse(BaseModel):
     max: int
 
 
-class ExpirationRequest(BaseModel):
+class Expiration(BaseModel):
     expires_at: int
 
 
@@ -26,5 +26,5 @@ class FileMetaUpload(FileMeta):
     content_length: int
 
 
-class ExpirationResponse(BaseModel):
-    expires_at: int
+class SessionToken(BaseModel):
+    session_token: str

@@ -21,7 +21,6 @@ def head_status():
 
 @router.get("/status", response_model=StatusResponse)
 def get_status(authorization: str = Header(None)):
-    # optionally can be protected with a token, but I don't see the point
     if STATUS_TOKEN and (authorization is None or not secrets.compare_digest(STATUS_TOKEN, authorization)):
         raise HTTPException(status_code=401)
 

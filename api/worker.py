@@ -17,10 +17,8 @@ redis = Redis(**REDIS)
 
 def check_file(filename: str) -> int:
     id_ = bytes.fromhex(filename).decode()
-    expiration = int(redis.get("expire-" + id_) or -1)
-    if CURRENT_TIME > expiration > 0:
+    if not redis.exists("file:" + id_):
         os.remove("/mount/upload/" + filename)
-        redis.delete("metadata-" + id_, "revocation-" + id_, "expire-" + id_)
         return 1
     return 0
 

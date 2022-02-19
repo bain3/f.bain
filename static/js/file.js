@@ -63,6 +63,9 @@ class CryptoPair {
     /** @type Uint8Array */
     _currentIV;
 
+    /** @type Uint8Array */
+    _rollbackIV;
+
     constructor(password, key, ogBlockIV, filenameIV) {
         this.password = password;
         this.key = key;
@@ -70,6 +73,7 @@ class CryptoPair {
         this.filenameIV = filenameIV;
         this._filenameEncrypted = false;
         this._currentIV = ogBlockIV;
+        this._rollbackIV = ogBlockIV;
     }
 
     /**
@@ -148,9 +152,17 @@ class CryptoPair {
             block
         );
 
+        this._rollbackIV = this._currentIV;
         this._currentIV = newIv;
 
         return cipher;
+    }
+
+    /**
+     * Rollback IV to the previous block (used when connection drops)
+     */
+    async rollbackIV() {
+        this._currentIV = this._rollbackIV;
     }
 
     /**
@@ -239,15 +251,6 @@ class LocalFile {
             throw "failed to encrypt filename";
         }
 
-        // progressHandler({statusText: "encrypting file"});
-        // let encryptedData;
-        // try {
-        //     encryptedData = await this._getEncryptedBlob(keyPair, progressHandler);
-        // } catch (e) {
-        //     console.log(e);
-        //     throw "failed to encrypt file contents";
-        // }
-
         progressHandler({ statusText: "creating session" });
         const contentLength = Math.ceil(this.file.size / BLOCK_SIZE) * 48 + this.file.size;
         const session_token = await this._createUploadSession(host, encryptedFilename, salt, contentLength);
@@ -302,15 +305,17 @@ class LocalFile {
      * @private
      */
     async _uploadWithSession(host, sessionToken, keyPair, progressHandler, retry = 0) {
-        const f = this;
         let promise = new Promise((resolve, reject) => {
             let socket = new WebSocket(`wss://${host ? new URL(host).host : location.host}/upload/${sessionToken}`);
+            let last_timeout = null;
             socket.onopen = (_) => {
                 retry = 0; // we have successfully connected -> reset the counter
                 progressHandler({ status: "neutral", statusText: "uploading file" });
             };
 
             socket.onmessage = async (event) => {
+                if (last_timeout != null) clearTimeout(last_timeout);
+                last_timeout = setTimeout(socket.onerror, 60000);
                 const data = JSON.parse(event.data);
                 switch (data.code) {
                     case 201:
@@ -320,28 +325,35 @@ class LocalFile {
                     case 100:
                         // encrypt the required block
                         const offset = data.block * BLOCK_SIZE;
-                        if (offset > f.file.size) {
+                        if (offset > this.file.size) {
                             socket.close(1000);
                             reject("server requested more data than anticipated");
                             return;
                         }
-                        const blockData = new Uint8Array(await f.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
+                        const blockData = new Uint8Array(await this.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
                         const cipher = await keyPair.encryptBlock(blockData);
                         socket.send(cipher);
-                        progressHandler({ progress: (offset + BLOCK_SIZE) / f.file.size });
+                        progressHandler({ progress: (offset + BLOCK_SIZE) / this.file.size });
                         break;
                     case 414:
+                    case 401:
                         // error in communication
                         reject(data.detail);
                         break;
                 }
             };
 
+            const f = this;
             socket.onerror = (_) => {
                 if (retry == 3) {
                     reject("failed to connect");
                 } else {
+                    // prevent revival of old socket
+                    socket.onmessage = null;
+                    socket.onerror = null;
+
                     progressHandler({ status: "error", statusText: "encountered an error, reconnecting" });
+                    keyPair.rollbackIV();
                     f._uploadWithSession(host, sessionToken, keyPair, progressHandler, retry + 1).then(e => resolve(e), e => reject(e));
                 }
             };
@@ -437,15 +449,23 @@ class ForeignFile {
      */
     async getData(progressHandler, offset = 0, retry = 0) {
         let promise = new Promise((resolve, reject) => {
-            let socket = new WebSocket(`wss://${this.host || location.host}/${this.id}/raw`);
+            let socket;
+            try {
+                socket = new WebSocket(`wss://${this.host || location.host}/${this.id}/raw`);
+            } catch (e) {
+
+            }
             let first_msg = true;
             let blob = new Blob([]);
+            let last_timeout = null;
 
             socket.onopen = (_) => {
-                progressHandler({ statusText: "Downloading", status: "normal" });
+                progressHandler({ statusText: "Downloading", status: "neutral" });
             };
 
             socket.onmessage = async (event) => {
+                if (last_timeout) clearTimeout(last_timeout);
+                last_timeout = setTimeout(socket.onerror, 60000);
                 let data = event.data;
                 if (first_msg) {
                     let json = JSON.parse(data);
@@ -453,7 +473,7 @@ class ForeignFile {
                         reject("File was not found");
                         return;
                     }
-                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 })); // request another block
+                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48, "seek": offset }));
                     first_msg = false;
                     return;
                 }
@@ -474,12 +494,16 @@ class ForeignFile {
                 socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 })); // request another block
             };
 
+            const f = this;
             socket.onerror = (_) => {
                 if (retry == 3) {
                     reject("Failed to download")
                 } else {
                     progressHandler({ statusText: "Reconnecting", status: "error" });
-                    this.getData(blob, progressHandler, offset, retry + 1).then(e => {
+                    // prevent revival of old socket
+                    socket.onmessage = null;
+                    socket.onerror = null;
+                    f.getData(progressHandler, offset, retry + 1).then(e => {
                         blob = new Blob([blob, e]);
                         resolve(blob);
                     }, e => reject(e));

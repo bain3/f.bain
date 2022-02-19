@@ -109,7 +109,17 @@ async function on_load() {
         R('button').addEventListener('click', async () => {
             if (!downloaded) {
                 downloaded = true;
-                const blob = await file.getData(p => progress.update(p));
+                let blob;
+                try {
+                    blob = await file.getData(p => progress.update(p));
+                } catch (e) {
+                    console.log(e);
+                    progress.update({
+                        status: "error",
+                        statusText: "Download failed"
+                    });
+                    return;
+                }
                 downloadBlobURL(URL.createObjectURL(blob), file.filename);
                 progress.update({
                     status: "success",

@@ -1,6 +1,6 @@
-from typing import Optional, List
+from typing import List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
 
 class StatusResponse(BaseModel):
@@ -13,14 +13,27 @@ class FileSizeLimitResponse(BaseModel):
     max: int
 
 
-class ExpirationRequest(BaseModel):
+class Expiration(BaseModel):
     expires_at: int
 
 
 class FileMeta(BaseModel):
     salt: List[int]
     filename: str
+    content_length: int
+
+    @validator("salt")
+    def salt_must_be_32_bytes(cls, v):
+        if len(v) != 32:
+            raise ValueError("Salt must be 32 bytes long")
+        return v
+
+    @validator("filename")
+    def filename_must_be_shorter_than_1024_chars(cls, v):
+        if len(v) >= 1024:
+            raise ValueError("Filename must be shorter than 1024 characters")
+        return v
 
 
-class ExpirationResponse(BaseModel):
-    expires_at: int
+class SessionToken(BaseModel):
+    session_token: str

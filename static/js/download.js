@@ -4,7 +4,7 @@ let fileObject = null;
 let expire_index = 0;
 
 function secondsToDays(seconds) {
-    return Math.ceil(seconds/60/60/24);
+    return Math.ceil(seconds / 60 / 60 / 24);
 }
 
 function getSizeHumanReadable(size) {
@@ -31,9 +31,9 @@ async function on_load() {
 
     R('button').style.display = 'flex';
     let progress = new Progress({
-            status: "neutral",
-            statusText: "Fetching file metadata"
-        },
+        status: "neutral",
+        statusText: "Fetching file metadata"
+    },
         R('prgrs.value'),
         R('prgrs.status'),
         (p) => `calc(${12 * p}rem + ${20 * p}px)`
@@ -76,12 +76,11 @@ async function on_load() {
     R('settings.button').hidden = false;
 
     R('file.name').innerText = file.filename;
-    const cipher_size = await file.getSize();
-    R('file.size').innerText = getSizeHumanReadable(cipher_size);
+    R('file.size').innerText = getSizeHumanReadable(file.size);
 
-    // if the file is smaller than 10mb
     const filenameLower = file.filename.toLowerCase();
-    if (cipher_size <= 10000000 && (filenameLower.endsWith(".jpg") || filenameLower.endsWith(".png"))) {
+    // if the file is smaller than 10mb
+    if (file.size <= 10000000 && (filenameLower.endsWith(".jpg") || filenameLower.endsWith(".png"))) {
         downloaded = true;
         const blob = await file.getData(p => progress.update(p));
         progress.update({
@@ -176,24 +175,24 @@ function deleteFile() {
 }
 
 async function setExpire() {
-    let now = Math.round(new Date().getTime()/1000);
-    let expirations = [now+7*24*60*60, now+30*24*60*60, -1];
-    let expire_in = expirations[(expire_index++)%3];
+    let now = Math.round(new Date().getTime() / 1000);
+    let expirations = [now + 7 * 24 * 60 * 60, now + 30 * 24 * 60 * 60, -1];
+    let expire_in = expirations[(expire_index++) % 3];
     if (await fileObject.set_expires_at(revocationToken, expire_in)) {
-        if (expire_in > 0) R('settings.expiration').innerText = `Expires in: ${secondsToDays(expire_in-now)} days`;
+        if (expire_in > 0) R('settings.expiration').innerText = `Expires in: ${secondsToDays(expire_in - now)} days`;
         else R('settings.expiration').innerText = "Expires in: never";
     }
 }
 
 async function loadExpire() {
-    let now = Math.round(new Date().getTime()/1000);
+    let now = Math.round(new Date().getTime() / 1000);
     let expiration = await fileObject.expires_at(revocationToken);
     if (expiration === -2) {
         R('settings.text').innerText = "Failed to fetch expiration data";
     } else if (expiration === -1) {
         R('settings.expiration').innerText = "Expires in: never";
     } else {
-        R('settings.expiration').innerText = `Expires in: ${secondsToDays(expiration-now)} days`;
+        R('settings.expiration').innerText = `Expires in: ${secondsToDays(expiration - now)} days`;
     }
 }
 

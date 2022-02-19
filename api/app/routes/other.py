@@ -21,7 +21,6 @@ def head_status():
 
 @router.get("/status", response_model=StatusResponse)
 def get_status(authorization: str = Header(None)):
-    # optionally can be protected with a token, but I don't see the point
     if STATUS_TOKEN and (authorization is None or not secrets.compare_digest(STATUS_TOKEN, authorization)):
         raise HTTPException(status_code=401)
 
@@ -30,7 +29,7 @@ def get_status(authorization: str = Header(None)):
     total_size = 0
     file: os.DirEntry
     for file in os.scandir(dir_):
-        if file.is_file():
+        if file.is_file() and file.name != ".keep":
             total_size += file.stat().st_size
             count += 1
 
@@ -43,4 +42,4 @@ def get_status(authorization: str = Header(None)):
 
 @router.get("/max-filesize", response_model=FileSizeLimitResponse)
 async def get_max_filesize():
-    return {"max": int(redis.get('maxfs'))}
+    return {"max": int(redis.get('maxfs') or "0")}

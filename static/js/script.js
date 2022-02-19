@@ -3,7 +3,7 @@ let strength = 14;
 let max_file_size = 0;
 
 // from @mrkelvinli on github, pathing Blob.arrayBuffer for safari.
-(function () {
+(function() {
     File.prototype.arrayBuffer = File.prototype.arrayBuffer || myArrayBuffer;
     Blob.prototype.arrayBuffer = Blob.prototype.arrayBuffer || myArrayBuffer;
 
@@ -44,7 +44,7 @@ async function sendRequest(file) {
     R('fileInput').disabled = true;
 
     let progress_bar = new Progress(
-        {status: "neutral", statusText: "", progress: 0},
+        { status: "neutral", statusText: "", progress: 0 },
         R('prgrs.value'),
         R('prgrs.status')
     );
@@ -63,10 +63,11 @@ async function sendRequest(file) {
     try {
         resp = await localFile.upload(strength, "", p => progress_bar.update(p));
     } catch (e) {
-        progress_bar.update({status: "error", statusText: e})
+        progress_bar.update({ status: "error", statusText: e })
+        console.log(e);
         return;
     }
-    progress_bar.update({status: "success", statusText: "redirecting to uploaded file..."});
+    progress_bar.update({ status: "success", statusText: "redirecting to uploaded file..." });
 
     // redirect user to the file. pass revocation token in url parameter
     // (safe because its generated server side anyways)

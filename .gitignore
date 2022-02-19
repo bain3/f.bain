@@ -3,6 +3,8 @@ mount/upload/*
 !mount/upload/.keep
 redis_db/*
 !redis_db/.keep
+mount/partial/*
+!mount/partial/.keep
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

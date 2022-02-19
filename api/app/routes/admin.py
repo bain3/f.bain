@@ -26,9 +26,9 @@ async def set_max_filesize(new_max: str, authorization: str = Header("")):
         pass
 
     try:
-        new_max = int(new_max)
+        new_max = int(new_max)  # type: ignore
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid max filesize")
 
     redis.set("maxfs", int(new_max) * magnitude)
-    return {"max": int(redis.get("maxfs"))}
+    return {"max": int(redis.get("maxfs") or "")}

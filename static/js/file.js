@@ -431,38 +431,10 @@ class ForeignFile {
     /**
      * Decrypted file contents
      * @param {ProgressHandler} progressHandler
+     * @param {number} offset file offset
+     * @param {number} retry
      * @returns {Promise<Blob>} file data
      */
-    // async getData(progress) {
-    //     progress({ statusText: "Downloading file" });
-    //     let cipher;
-    //     try {
-    //         cipher = await this.getRawData(progress);
-    //     } catch (e) {
-    //         progress({ status: "error", statusText: `failed to fetch data (code: ${e})` });
-    //     }
-    //     progress({ statusText: "Decrypting file" });
-    //     let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
-    //     try {
-    //         let offset = 0;
-    //         while (offset < cipher.size) {
-    //             const block = await cipher.slice(offset, offset + 5242928).arrayBuffer();
-    //             const d_block = await this._keyPair.decryptBlock(block);
-
-    //             output_blob = new Blob([output_blob, d_block]);
-
-    //             offset += 5242928;
-    //             progress({ progress: Math.min(0.5 + offset / cipher.size, 1) });
-    //         }
-    //     } catch (e) {
-    //         console.log(e);
-    //         progress({
-    //             status: "error",
-    //             statusText: "Decryption error"
-    //         });
-    //     }
-    //     return output_blob;
-    // }
     async getData(progressHandler, offset = 0, retry = 0) {
         let promise = new Promise((resolve, reject) => {
             let socket = new WebSocket(`wss://${this.host || location.host}/${this.id}/raw`);
@@ -513,33 +485,6 @@ class ForeignFile {
                     }, e => reject(e));
                 }
             };
-        });
-        return await promise;
-    }
-
-    /**
-     * Fetches encrypted data
-     * @param {ProgressHandler} progress
-     * @returns {Promise<Blob>}
-     */
-    async getRawData(progress) {
-        const xhr = new XMLHttpRequest();
-        const promise = new Promise((resolve, reject) => { // fuck callbacks
-            xhr.addEventListener("readystatechange", function() {
-                if (this.readyState === this.DONE) {
-                    if (this.status === 200) {
-                        resolve(this.response);
-                    } else {
-                        reject(this.status);
-                    }
-                }
-            });
-            xhr.addEventListener("progress", function(p) {
-                progress({ progress: 0.10 + p.loaded / p.total * 0.40 });
-            })
-            xhr.open("GET", `${this.host}/${this.id}/raw`);
-            xhr.responseType = "blob";
-            xhr.send();
         });
         return await promise;
     }

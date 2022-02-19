@@ -66,11 +66,15 @@ async def get_raw(socket: WebSocket, uuid: str):
                 except JSONDecodeError:
                     break
                 seek = message.get("seek", -1)
-                if 0 <= seek < file_size:
+                if 0 <= seek < file_size and cursor_pos != seek:
                     await f.seek(seek)
                     cursor_pos = seek
                 read = message.get("read", -1)
-                if read < 0 or cursor_pos+read > file_size or read > 16000000:
+
+                if cursor_pos + read > file_size:
+                    read = file_size - cursor_pos
+
+                if read < 0 or read > 16000000:
                     break
                 await socket.send_bytes(await f.read(read))
     except WebSocketDisconnect:

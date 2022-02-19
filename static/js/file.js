@@ -16,10 +16,9 @@ const BLOCK_SIZE = 5242880;
  */
 function generatePassword(length) {
     let array = new Uint8Array(length);
-    let cryptoObj = window.crypto || window.msCrypto;
     let output = "";
     while (output.length < length) {
-        cryptoObj.getRandomValues(array);
+        window.crypto.getRandomValues(array);
         for (let i = 0; i < array.length; i++) {
             // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
             // otherwise we wouldn't have a good distribution
@@ -81,7 +80,7 @@ class CryptoPair {
      * @returns {Promise<CryptoPair>}
      */
     static async fromPassword(password, salt) {
-        const subtle = (window.crypto || window.msCrypto).subtle;
+        const subtle = window.crypto.subtle;
 
         const importedPassword = await subtle.importKey(
             "raw",
@@ -91,7 +90,7 @@ class CryptoPair {
             ["deriveBits"]
         );
         const strengthened = await subtle.deriveBits(
-            {name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: PBKDF2_ITERATIONS},
+            { name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: PBKDF2_ITERATIONS },
             importedPassword,
             768
         );
@@ -118,10 +117,8 @@ class CryptoPair {
         }
         this._filenameEncrypted = true;
 
-        let subtle = (window.crypto || window.msCrypto).subtle;
-
-        let enc_bytes = await subtle.encrypt(
-            {name: "AES-GCM", iv: this.filenameIV, tagLength: 128},
+        let enc_bytes = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: this.filenameIV, tagLength: 128 },
             this.key,
             new TextEncoder().encode(filename)
         );
@@ -138,19 +135,15 @@ class CryptoPair {
      * @returns {Promise<ArrayBuffer>} ciphertext
      */
     async encryptBlock(blockData) {
-        const cryptoObj = window.crypto || window.msCrypto;
-
         const newIv = new Uint8Array(32);
-        cryptoObj.getRandomValues(newIv);
-
-        const subtle = cryptoObj.subtle;
+        window.crypto.getRandomValues(newIv);
 
         let block = new Uint8Array(newIv.byteLength + blockData.byteLength);
         block.set(newIv, 0);
         block.set(blockData, 32);
 
-        const cipher = await subtle.encrypt(
-            {name: "AES-GCM", iv: this._currentIV, tagLength: 128},
+        const cipher = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: this._currentIV, tagLength: 128 },
             this.key,
             block
         );
@@ -170,9 +163,8 @@ class CryptoPair {
         const decoded_cipher = new Uint8Array(b64.length);
         for (let i = 0; i < b64.length; i++) decoded_cipher[i] = b64.charCodeAt(i);
 
-        const subtle = (window.crypto || window.msCrypto).subtle;
-        return new TextDecoder().decode(await subtle.decrypt(
-            {name: "AES-GCM", iv: this.filenameIV, tagLength: 128},
+        return new TextDecoder().decode(await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: this.filenameIV, tagLength: 128 },
             this.key,
             decoded_cipher
         ));
@@ -184,9 +176,8 @@ class CryptoPair {
      * @returns {Promise<ArrayBuffer>} block
      */
     async decryptBlock(cipher) {
-        const subtle = (window.crypto || window.msCrypto).subtle;
-        const d_block = await subtle.decrypt(
-            {"name": "AES-GCM", "iv": this._currentIV, "tagLength": 128},
+        const d_block = await window.crypto.subtle.decrypt(
+            { "name": "AES-GCM", "iv": this._currentIV, "tagLength": 128 },
             this.key, cipher);
         this._currentIV = new Uint8Array(d_block.slice(0, 32)); // update iv for next iteration
         return d_block.slice(32, cipher.byteLength);
@@ -218,12 +209,11 @@ class LocalFile {
     async upload(keyLength, host, progressHandler) {
         if (host === undefined) host = "";  // set default for host if not provided
 
-        const cryptoObj = (window.crypto || window.msCrypto);
-        if (cryptoObj === undefined) {
+        if (window.crypto === undefined) {
             throw "browser does not support necessary cryptographic API";
         }
         const salt = new Uint8Array(32);
-        cryptoObj.getRandomValues(salt);
+        window.crypto.getRandomValues(salt);
 
         // generate a password and make sure the end character is suitable for messaging apps
         let password;
@@ -240,7 +230,7 @@ class LocalFile {
             throw "failed to construct encryption pair";
         }
 
-        progressHandler({statusText: "encrypting filename"});
+        progressHandler({ statusText: "encrypting filename" });
         let encryptedFilename;
         try {
             encryptedFilename = await keyPair.encryptFilename(this.file.name);
@@ -249,23 +239,19 @@ class LocalFile {
             throw "failed to encrypt filename";
         }
 
-        progressHandler({statusText: "encrypting file"});
-        let encryptedData;
-        try {
-            encryptedData = await this._getEncryptedBlob(keyPair, progressHandler);
-        } catch (e) {
-            console.log(e);
-            throw "failed to encrypt file contents";
-        }
+        // progressHandler({statusText: "encrypting file"});
+        // let encryptedData;
+        // try {
+        //     encryptedData = await this._getEncryptedBlob(keyPair, progressHandler);
+        // } catch (e) {
+        //     console.log(e);
+        //     throw "failed to encrypt file contents";
+        // }
 
-        progressHandler({statusText: "uploading file"});
-        const response = await this._sendRequest(
-            host,
-            encryptedData,
-            encryptedFilename,
-            Array.from(salt),
-            progressHandler
-        );
+        progressHandler({ statusText: "creating session" });
+        const contentLength = Math.ceil(this.file.size / BLOCK_SIZE) * 48 + this.file.size;
+        const session_token = await this._createUploadSession(host, encryptedFilename, salt, contentLength);
+        const response = await this._uploadWithSession(host, session_token, keyPair, progressHandler);
 
         return {
             uuid: response.uuid,
@@ -276,62 +262,89 @@ class LocalFile {
     }
 
     /**
-     * Encrypts the contents of the file and returns a blob
-     * @param {CryptoPair} keyPair
-     * @param {ProgressHandler} progressHandler
-     * @returns {Promise<Blob>}
+     * Creates a session
+     * @param {string} host
+     * @param {string} encryptedFilename
+     * @param {Uint8Array} saltArray
+     * @param {number} contentLength
+     * @returns {Promise<string>}
      * @private
      */
-    async _getEncryptedBlob(keyPair, progressHandler) {
-        let outputBlob = new Blob([]); // preparing output blob, needs to be blob to not crash the browser
-        for (let offset = 0; offset < this.file.size; offset += BLOCK_SIZE) {
-            const blockData = new Uint8Array(await this.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
-
-            const cipher = await keyPair.encryptBlock(blockData);
-
-            outputBlob = new Blob([outputBlob, cipher]);
-
-            progressHandler({progress: Math.min(offset, this.file.size) / this.file.size * 0.5});
+    async _createUploadSession(host, encryptedFilename, saltArray, contentLength) {
+        const response = await fetch(`${host}/upload`, {
+            method: "POST", body: JSON.stringify({
+                filename: encryptedFilename,
+                salt: Array.from(saltArray),
+                content_length: contentLength
+            }),
+            headers: { "content-type": "application/json" }
+        });
+        if (response.status === 422) {
+            let error = await response.json();
+            let error_msg = "";
+            for (let e of error.detail) {
+                error_msg += e.loc + ": " + e.msg + "\n";
+            }
+            throw error_msg
         }
-        return outputBlob;
+        if (!response.ok) throw "failed to create session";
+        return (await response.json()).session_token
     }
 
     /**
-     * Sends a POST request with encrypted file data
+     * Uploads the file with a session
      * @param {string} host
-     * @param {Blob} encryptedData
-     * @param {string} encryptedFilename
-     * @param {Array<number>} saltArray array of ints, each representing a byte
+     * @param {string} sessionToken
+     * @param {CryptoPair} keyPair
      * @param {ProgressHandler} progressHandler
-     * @returns {Promise<Object>} success response from the server
+     * @param {number} retry
+     * @returns {Promise<{uuid: string, revocation_token: string}>}
      * @private
      */
-    async _sendRequest(host, encryptedData, encryptedFilename, saltArray, progressHandler) {
+    async _uploadWithSession(host, sessionToken, keyPair, progressHandler, retry = 0) {
+        const f = this;
         let promise = new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            // response handler
-            xhr.addEventListener("readystatechange", function () {
-                if (this.readyState === this.DONE) {
-                    if (this.status === 200) {
-                        resolve(JSON.parse(this.responseText))
-                    } else {
-                        reject({code: this.status, message: "Non 200 status from server"});
-                    }
+            let socket = new WebSocket(`wss://${host ? new URL(host).host : location.host}/upload/${sessionToken}`);
+            socket.onopen = (_) => {
+                retry = 0; // we have successfully connected -> reset the counter
+                progressHandler({ status: "neutral", statusText: "uploading file" });
+            };
+
+            socket.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                switch (data.code) {
+                    case 201:
+                        // upload complete
+                        resolve(data);
+                        break;
+                    case 100:
+                        // encrypt the required block
+                        const offset = data.block * BLOCK_SIZE;
+                        if (offset > f.file.size) {
+                            socket.close(1000);
+                            reject("server requested more data than anticipated");
+                            return;
+                        }
+                        const blockData = new Uint8Array(await f.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
+                        const cipher = await keyPair.encryptBlock(blockData);
+                        socket.send(cipher);
+                        progressHandler({ progress: (offset + BLOCK_SIZE) / f.file.size });
+                        break;
+                    case 414:
+                        // error in communication
+                        reject(data.detail);
+                        break;
                 }
-            });
-            // update progress bar
-            xhr.upload.addEventListener("progress", p => progressHandler({progress: 0.5 + (p.loaded / p.total / 2)}));
+            };
 
-            progressHandler({status: "neutral", statusText: "uploading..."})
-            xhr.open("POST", `${host}/new`);
-            xhr.setRequestHeader("Content-Type", "application/octet-stream");
-
-            // setting metadata header to send salt and file name encoded in json, then in base64
-            xhr.setRequestHeader("X-Metadata", window.btoa(JSON.stringify({
-                filename: encryptedFilename,
-                salt: saltArray
-            })));
-            xhr.send(encryptedData);
+            socket.onerror = (_) => {
+                if (retry == 3) {
+                    reject("failed to connect");
+                } else {
+                    progressHandler({ status: "error", statusText: "encountered an error, reconnecting" });
+                    f._uploadWithSession(host, sessionToken, keyPair, progressHandler, retry + 1).then(e => resolve(e), e => reject(e));
+                }
+            };
         });
         return await promise;
     }
@@ -367,16 +380,23 @@ class ForeignFile {
     _keyPair;
 
     /**
+     * @readonly
+     * @type number
+     */
+    size;
+
+    /**
      * @param {string} host
      * @param {string} id
      * @param {CryptoPair} keyPair
      * @param {string} filename
      */
-    constructor(host, id, keyPair, filename) {
+    constructor(host, id, keyPair, filename, size) {
         this.host = host;
         this.id = id;
         this._keyPair = keyPair;
         this.filename = filename;
+        this.size = size;
     }
 
     /**
@@ -387,7 +407,7 @@ class ForeignFile {
      */
     static async fromIDPair(host, id, password) {
         const resp = await fetch(`${host}/${id}/meta`);
-        if (!resp.ok) throw "could not fetch information";
+        if (!resp.ok) throw "failed to fetch information";
         const resp_json = await resp.json();
 
         let keyPair;
@@ -403,55 +423,98 @@ class ForeignFile {
             filename = await keyPair.decryptFilename(resp_json.filename);
         } catch (e) {
             console.log(e);
-            throw "failed to decrypt file name, bad key?";
+            throw "failed to decrypt. bad password?";
         }
-        return new ForeignFile(host, id, keyPair, filename);
-    }
-
-    /**
-     * Get size of the file
-     * @returns {Promise<number>}
-     */
-    async getSize() {
-        const resp = await fetch(`${this.host}/${this.id}/raw`, {method: "HEAD"});
-        if (!resp.ok) return -1;
-        return Number(resp.headers.get("content-length"));
+        return new ForeignFile(host, id, keyPair, filename, resp_json.content_length);
     }
 
     /**
      * Decrypted file contents
-     * @param {ProgressHandler} progress
+     * @param {ProgressHandler} progressHandler
      * @returns {Promise<Blob>} file data
      */
-    async getData(progress) {
-        progress({statusText: "Downloading file"});
-        let cipher;
-        try {
-            cipher = await this.getRawData(progress);
-        } catch (e) {
-            progress({status: "error", statusText: `failed to fetch data (code: ${e})`});
-        }
-        progress({statusText: "Decrypting file"});
-        let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
-        try {
-            let offset = 0;
-            while (offset < cipher.size) {
-                const block = await cipher.slice(offset, offset + 5242928).arrayBuffer();
-                const d_block = await this._keyPair.decryptBlock(block);
+    // async getData(progress) {
+    //     progress({ statusText: "Downloading file" });
+    //     let cipher;
+    //     try {
+    //         cipher = await this.getRawData(progress);
+    //     } catch (e) {
+    //         progress({ status: "error", statusText: `failed to fetch data (code: ${e})` });
+    //     }
+    //     progress({ statusText: "Decrypting file" });
+    //     let output_blob = new Blob([]); // working with blobs to not crash the browser with big files
+    //     try {
+    //         let offset = 0;
+    //         while (offset < cipher.size) {
+    //             const block = await cipher.slice(offset, offset + 5242928).arrayBuffer();
+    //             const d_block = await this._keyPair.decryptBlock(block);
 
-                output_blob = new Blob([output_blob, d_block]);
+    //             output_blob = new Blob([output_blob, d_block]);
 
-                offset += 5242928;
-                progress({progress: Math.min(0.5 + offset / cipher.size, 1)});
-            }
-        } catch (e) {
-            console.log(e);
-            progress({
-                status: "error",
-                statusText: "Decryption error"
-            });
-        }
-        return output_blob;
+    //             offset += 5242928;
+    //             progress({ progress: Math.min(0.5 + offset / cipher.size, 1) });
+    //         }
+    //     } catch (e) {
+    //         console.log(e);
+    //         progress({
+    //             status: "error",
+    //             statusText: "Decryption error"
+    //         });
+    //     }
+    //     return output_blob;
+    // }
+    async getData(progressHandler, offset = 0, retry = 0) {
+        let promise = new Promise((resolve, reject) => {
+            let socket = new WebSocket(`wss://${this.host || location.host}/${this.id}/raw`);
+            let first_msg = true;
+            let blob = new Blob([]);
+
+            socket.onopen = (_) => {
+                progressHandler({ statusText: "Downloading", status: "normal" });
+            };
+
+            socket.onmessage = async (event) => {
+                let data = event.data;
+                if (first_msg) {
+                    let json = JSON.parse(data);
+                    if (json.code != 200) {
+                        reject("File was not found");
+                        return;
+                    }
+                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 })); // request another block
+                    first_msg = false;
+                    return;
+                }
+                try {
+                    blob = new Blob([blob, await this._keyPair.decryptBlock(await data.arrayBuffer())]);
+                } catch (e) {
+                    console.log(e);
+                    reject(e);
+                    return;
+                }
+                offset += data.size;
+                progressHandler({ progress: offset / this.size });
+                if (offset == this.size) {
+                    socket.close(1000);
+                    resolve(blob);
+                    return;
+                }
+                socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 })); // request another block
+            };
+
+            socket.onerror = (_) => {
+                if (retry == 3) {
+                    reject("Failed to download")
+                } else {
+                    progressHandler({ statusText: "Reconnecting", status: "error" });
+                    this.getData(blob, progressHandler, offset, retry + 1).then(e => {
+                        blob = new Blob([blob, e]);
+                        resolve(blob);
+                    }, e => reject(e));
+                }
+            };
+        });
+        return await promise;
     }
 
     /**
@@ -462,7 +525,7 @@ class ForeignFile {
     async getRawData(progress) {
         const xhr = new XMLHttpRequest();
         const promise = new Promise((resolve, reject) => { // fuck callbacks
-            xhr.addEventListener("readystatechange", function () {
+            xhr.addEventListener("readystatechange", function() {
                 if (this.readyState === this.DONE) {
                     if (this.status === 200) {
                         resolve(this.response);
@@ -471,8 +534,8 @@ class ForeignFile {
                     }
                 }
             });
-            xhr.addEventListener("progress", function (p) {
-                progress({progress: 0.10 + p.loaded / p.total * 0.40});
+            xhr.addEventListener("progress", function(p) {
+                progress({ progress: 0.10 + p.loaded / p.total * 0.40 });
             })
             xhr.open("GET", `${this.host}/${this.id}/raw`);
             xhr.responseType = "blob";
@@ -488,7 +551,7 @@ class ForeignFile {
      */
     async delete(revocationToken) {
         let resp = await fetch("/" + this.id, {
-            method: "DELETE", headers: {authorization: revocationToken}
+            method: "DELETE", headers: { authorization: revocationToken }
         });
         return resp.status === 200;
     }
@@ -500,7 +563,7 @@ class ForeignFile {
      */
     async expires_at(revocationToken) {
         let resp = await fetch(`/${this.id}/expire`, {
-            headers: {authorization: revocationToken}
+            headers: { authorization: revocationToken }
         });
         if (resp.ok) {
             let contents = await resp.json();
@@ -519,8 +582,8 @@ class ForeignFile {
     async set_expires_at(revocationToken, timestamp) {
         let resp = await fetch(`/${this.id}/expire`, {
             method: "PUT",
-            body: JSON.stringify({"expires_at": timestamp}),
-            headers: {authorization: revocationToken}
+            body: JSON.stringify({ "expires_at": timestamp }),
+            headers: { authorization: revocationToken, "content-type": "application/json" }
         });
         return resp.status === 200;
     }

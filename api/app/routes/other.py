@@ -42,4 +42,4 @@ def get_status(authorization: str = Header(None)):
 
 @router.get("/max-filesize", response_model=FileSizeLimitResponse)
 async def get_max_filesize():
-    return {"max": int(redis.get('maxfs'))}
+    return {"max": int(redis.get('maxfs') or "0")}

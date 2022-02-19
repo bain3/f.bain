@@ -14,7 +14,7 @@ MONTH_SECONDS = 30 * 24 * 60 * 60
 
 router = APIRouter()
 
-logger = logging.getLogger("gunicorn.error")
+# logger = logging.getLogger("gunicorn.error")
 
 
 def generate_unique_uuid() -> str:
@@ -28,8 +28,8 @@ def generate_unique_uuid() -> str:
 
 
 async def handle_upload(socket: WebSocket, session: str) -> None:
-    size = int(redis.hget("session:" + session, "size"))
-    block_num = int(redis.hget("session:" + session, "block"))
+    size = int(redis.hget("session:" + session, "size") or "")
+    block_num = int(redis.hget("session:" + session, "block") or "")
 
     if not redis.hsetnx("session:" + session, "lock", 1):
         await socket.send_json({"code": 401, "detail": "Another upload is already in progress"})
@@ -71,7 +71,7 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
 
     elif size == 0:
         # finalize upload
-        meta = redis.hget("session:" + session, "meta")
+        meta = redis.hget("session:" + session, "meta") or ""
         revocation_token = secrets.token_urlsafe(18)
         uuid = generate_unique_uuid()
 
@@ -90,7 +90,7 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
 
 @router.post("/upload", summary="Create a new session for uploading", response_model=SessionToken)
 async def make_session(body: FileMeta):
-    if body.content_length > int(redis.get("maxfs")):
+    if body.content_length > int(redis.get("maxfs") or ""):
         raise HTTPException(status_code=422, detail="File too large")
 
     session_token = None

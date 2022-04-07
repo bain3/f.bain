@@ -333,7 +333,7 @@ class LocalFile {
                         const blockData = new Uint8Array(await this.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
                         const cipher = await keyPair.encryptBlock(blockData);
                         socket.send(cipher);
-                        progressHandler({ progress: (offset + BLOCK_SIZE) / this.file.size });
+                        progressHandler({ progress: offset / this.file.size });
                         break;
                     case 414:
                     case 401:

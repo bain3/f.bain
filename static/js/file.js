@@ -1,5 +1,5 @@
 const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,";
-const PBKDF2_ITERATIONS = 50000;
+const PBKDF2_ITERATIONS = 500000;
 
 // this is the block size if UNENCRYPTED data (+48 if encrypted to account for IV and tag)
 const BLOCK_SIZE = 5242880;

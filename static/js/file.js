@@ -1,5 +1,7 @@
 const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,";
 const PBKDF2_ITERATIONS = 50000;
+
+// this is the block size if UNENCRYPTED data (+48 if encrypted to account for IV and tag)
 const BLOCK_SIZE = 5242880;
 
 /**
@@ -28,6 +30,11 @@ function generatePassword(length) {
         }
     }
     return output;
+}
+
+
+async function wait(milliseconds) {
+    await new Promise((res, _) => setTimeout(() => res(), milliseconds));
 }
 
 
@@ -447,70 +454,76 @@ class ForeignFile {
      * @param {number} retry
      * @returns {Promise<Blob>} file data
      */
-    async getData(progressHandler, offset = 0, retry = 0) {
-        let promise = new Promise((resolve, reject) => {
-            let socket;
-            try {
-                socket = new WebSocket(`wss://${this.host || location.host}/${this.id}/raw`);
-            } catch (e) {
+    async getData(progressHandler) {
+        let done = false;
+        let offset = 0;
+        let blob = new Blob([]);
+        while (!done) {
+            const promise = new Promise((resolve, reject) => {
+                const socket = new WebSocket(`wss://${this.host || location.host}/${this.id}/raw`);
 
-            }
-            let first_msg = true;
-            let blob = new Blob([]);
-            let last_timeout = null;
+                let first_msg = true;
 
-            socket.onopen = (_) => {
-                progressHandler({ statusText: "Downloading", status: "neutral" });
-            };
+                socket.onopen = _ => {
+                    progressHandler({ statusText: "Downloading", status: "neutral", progress: offset / this.size });
+                }
 
-            socket.onmessage = async (event) => {
-                if (last_timeout) clearTimeout(last_timeout);
-                last_timeout = setTimeout(socket.onerror, 60000);
-                let data = event.data;
-                if (first_msg) {
-                    let json = JSON.parse(data);
-                    if (json.code != 200) {
-                        reject("File was not found");
+                socket.onmessage = async event => {
+                    const data = event.data;
+
+                    if (first_msg) {
+                        // this is the first message that sends information
+                        // about the requested file
+                        const json = JSON.parse(data);
+                        if (json.code != 200) {
+                            done = true; // do not retry
+                            reject("File was not found");
+                            return;
+                        }
+                        socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48, "seek": offset }));
+                        first_msg = false;
                         return;
                     }
-                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48, "seek": offset }));
-                    first_msg = false;
-                    return;
-                }
-                try {
-                    blob = new Blob([blob, await this._keyPair.decryptBlock(await data.arrayBuffer())]);
-                } catch (e) {
-                    console.log(e);
-                    reject(e);
-                    return;
-                }
-                offset += data.size;
-                progressHandler({ progress: offset / this.size });
-                if (offset == this.size) {
-                    socket.close(1000);
-                    resolve(blob);
-                    return;
-                }
-                socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 })); // request another block
-            };
 
-            const f = this;
-            socket.onerror = (_) => {
-                if (retry == 3) {
-                    reject("Failed to download")
-                } else {
-                    progressHandler({ statusText: "Reconnecting", status: "error" });
-                    // prevent revival of old socket
-                    socket.onmessage = null;
-                    socket.onerror = null;
-                    f.getData(progressHandler, offset, retry + 1).then(e => {
-                        blob = new Blob([blob, e]);
+                    try {
+                        blob = new Blob([blob, await this._keyPair.decryptBlock(await data.arrayBuffer())]);
+                    } catch (e) {
+                        done = true; // do not retry, how would we recover?
+                        reject(e);
+                        return;
+                    }
+                    offset += data.size;
+
+                    progressHandler({ progress: offset / this.size });
+                    if (offset == this.size) {
+                        done = true;
+                        socket.close(1000);
                         resolve(blob);
-                    }, e => reject(e));
+                        return;
+                    }
+
+                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 }));
                 }
-            };
-        });
-        return await promise;
+
+                socket.onclose = _ => {
+                    if (!done) reject("closed before finished");
+                }
+
+                socket.onerror = event => {
+                    console.log(event);
+                    reject("error while downloading");
+                }
+            });
+            try {
+                return await promise;
+            } catch (e) {
+                if (done) throw e;
+                else console.log(e);
+            }
+            progressHandler({ statusText: "Reconnecting in 10s", status: "error" });
+            await wait(10000);
+            progressHandler({ statusText: "Reconnecting...", status: "error" });
+        }
     }
 
     /**

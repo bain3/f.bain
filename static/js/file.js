@@ -307,65 +307,77 @@ class LocalFile {
      * @param {string} sessionToken
      * @param {CryptoPair} keyPair
      * @param {ProgressHandler} progressHandler
-     * @param {number} retry
      * @returns {Promise<{uuid: string, revocation_token: string}>}
      * @private
      */
-    async _uploadWithSession(host, sessionToken, keyPair, progressHandler, retry = 0) {
-        let promise = new Promise((resolve, reject) => {
-            let socket = new WebSocket(`wss://${host ? new URL(host).host : location.host}/upload/${sessionToken}`);
-            let last_timeout = null;
-            socket.onopen = (_) => {
-                retry = 0; // we have successfully connected -> reset the counter
-                progressHandler({ status: "neutral", statusText: "uploading file" });
-            };
+    async _uploadWithSession(host, sessionToken, keyPair, progressHandler) {
+        let done = false;
+        while (!done) {
+            let promise = new Promise((resolve, reject) => {
+                let socket = new WebSocket(`wss://${host ? new URL(host).host : location.host}/upload/${sessionToken}`);
 
-            socket.onmessage = async (event) => {
-                if (last_timeout != null) clearTimeout(last_timeout);
-                last_timeout = setTimeout(socket.onerror, 60000);
-                const data = JSON.parse(event.data);
-                switch (data.code) {
-                    case 201:
-                        // upload complete
-                        resolve(data);
-                        break;
-                    case 100:
-                        // encrypt the required block
-                        const offset = data.block * BLOCK_SIZE;
-                        if (offset > this.file.size) {
-                            socket.close(1000);
-                            reject("server requested more data than anticipated");
-                            return;
-                        }
-                        const blockData = new Uint8Array(await this.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
-                        const cipher = await keyPair.encryptBlock(blockData);
-                        socket.send(cipher);
-                        progressHandler({ progress: offset / this.file.size });
-                        break;
-                    case 414:
-                    case 401:
-                        // error in communication
-                        reject(data.detail);
-                        break;
+                socket.onopen = (_) => {
+                    progressHandler({ status: "neutral", statusText: "uploading file" });
+                };
+
+                socket.onmessage = async (event) => {
+                    const data = JSON.parse(event.data);
+                    switch (data.code) {
+                        case 201:
+                            // upload complete
+                            resolve(data);
+                            break;
+                        case 100:
+                            // encrypt the required block
+                            const offset = data.block * BLOCK_SIZE;
+                            if (offset > this.file.size) {
+                                socket.close(1000);
+                                done = true; // do not retry, how would we recover?
+                                reject("server requested more data than anticipated");
+                                return;
+                            }
+                            let cipher;
+                            try {
+                                const blockData = new Uint8Array(await this.file.slice(offset, offset + BLOCK_SIZE).arrayBuffer());
+                                cipher = await keyPair.encryptBlock(blockData);
+                            } catch (e) {
+                                done = true;
+                                reject(e);
+                                return;
+                            }
+                            socket.send(cipher);
+                            progressHandler({ progress: offset / this.file.size });
+                            break;
+                        case 414:
+                        case 401:
+                            // error in communication
+                            reject(data.detail);
+                            break;
+                    }
+                };
+
+                socket.onclose = _ => {
+                    if (!done) reject("closed before finished");
                 }
-            };
 
-            const f = this;
-            socket.onerror = (_) => {
-                if (retry == 3) {
-                    reject("failed to connect");
-                } else {
-                    // prevent revival of old socket
-                    socket.onmessage = null;
-                    socket.onerror = null;
-
-                    progressHandler({ status: "error", statusText: "encountered an error, reconnecting" });
-                    keyPair.rollbackIV();
-                    f._uploadWithSession(host, sessionToken, keyPair, progressHandler, retry + 1).then(e => resolve(e), e => reject(e));
+                socket.onerror = event => {
+                    console.log(event);
+                    reject("error while uploading");
+                };
+            });
+            try {
+                return await promise;
+            } catch (e) {
+                if (done) throw e;
+                else {
+                    console.log(e);
+                    await keyPair.rollbackIV();
                 }
-            };
-        });
-        return await promise;
+            }
+            progressHandler({ statusText: "Reconnecting in 10s", status: "error" });
+            await wait(10000);
+            progressHandler({ statusText: "Reconnecting...", status: "error" });
+        }
     }
 }
 
@@ -450,8 +462,6 @@ class ForeignFile {
     /**
      * Decrypted file contents
      * @param {ProgressHandler} progressHandler
-     * @param {number} offset file offset
-     * @param {number} retry
      * @returns {Promise<Blob>} file data
      */
     async getData(progressHandler) {

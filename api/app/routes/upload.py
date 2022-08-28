@@ -22,7 +22,7 @@ def generate_unique_uuid() -> str:
         uuid = "".join(
             [
                 choice(
-                    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,"
+                    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~()'!*:@,;"
                 )
                 for _ in range(UUID_SIZE)
             ]
@@ -51,7 +51,7 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
                 block = await socket.receive_bytes()
 
                 if not redis.expire("session:" + session, 7200):
-                    # the session expired in during uploading
+                    # the session expired during uploading
                     size = -1
                     await socket.send_json({"code": 404, "detail": "Session expired"})
                     break

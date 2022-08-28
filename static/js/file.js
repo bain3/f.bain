@@ -1,4 +1,4 @@
-const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,";
+const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~()'!*:@,;";
 const PBKDF2_ITERATIONS = 500000;
 
 // this is the block size if UNENCRYPTED data (+48 if encrypted to account for IV and tag)
@@ -12,23 +12,31 @@ const BLOCK_SIZE = 5242880;
  */
 
 /**
- * Generates a password for encryption
+ * Generates a password for encryption. 
+ *
+ * The current alphabet has 75 letters to chose from, which means log2(75) (~6.2) bits of 
+ * entropy per letter. The last letter is only chosen from 68 characters to make
+ * the link sendable in chats. That means for any password of length n, the 
+ * entropy will be (n-1)*log2(75)+log2(68).
  * @param {number} length character length of the password
  * @returns {string}
  */
 function generatePassword(length) {
     let array = new Uint8Array(length);
-    let output = "";
-    while (output.length < length) {
-        window.crypto.getRandomValues(array);
-        for (let i = 0; i < array.length; i++) {
-            // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
-            // otherwise we wouldn't have a good distribution
-            if (array[i] > Math.floor(255 / KEY_ALPHABET.length) * KEY_ALPHABET.length) continue;
-            output += KEY_ALPHABET[Math.abs(array[i] % KEY_ALPHABET.length)];
-            if (output.length === length) break;
+    let output;
+    do {
+        output = "";
+        while (output.length < length) {
+            window.crypto.getRandomValues(array);
+            for (let i = 0; i < array.length; i++) {
+                // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
+                // otherwise we wouldn't have an even distribution
+                if (array[i] > Math.floor(255 / KEY_ALPHABET.length) * KEY_ALPHABET.length) continue;
+                output += KEY_ALPHABET[Math.abs(array[i] % KEY_ALPHABET.length)];
+                if (output.length === length) break;
+            }
         }
-    }
+    } while (".)'!:,;".includes(output[length - 1]));
     return output;
 }
 
@@ -234,12 +242,7 @@ class LocalFile {
         const salt = new Uint8Array(32);
         window.crypto.getRandomValues(salt);
 
-        // generate a password and make sure the end character is suitable for messaging apps
-        let password;
-        do {
-            password = generatePassword(keyLength);
-        } while (",.".includes(password[password.length - 1]));
-
+        let password = generatePassword(keyLength);
 
         let keyPair;
         try {
@@ -295,10 +298,10 @@ class LocalFile {
             for (let e of error.detail) {
                 error_msg += e.loc + ": " + e.msg + "\n";
             }
-            throw error_msg
+            throw error_msg;
         }
         if (!response.ok) throw "failed to create session";
-        return (await response.json()).session_token
+        return (await response.json()).session_token;
     }
 
     /**
@@ -358,7 +361,7 @@ class LocalFile {
 
                 socket.onclose = _ => {
                     if (!done) reject("closed before finished");
-                }
+                };
 
                 socket.onerror = event => {
                     console.log(event);
@@ -476,7 +479,7 @@ class ForeignFile {
 
                 socket.onopen = _ => {
                     progressHandler({ statusText: "Downloading", status: "neutral", progress: offset / this.size });
-                }
+                };
 
                 socket.onmessage = async event => {
                     const data = event.data;
@@ -513,16 +516,16 @@ class ForeignFile {
                     }
 
                     socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 }));
-                }
+                };
 
                 socket.onclose = _ => {
                     if (!done) reject("closed before finished");
-                }
+                };
 
                 socket.onerror = event => {
                     console.log(event);
                     reject("error while downloading");
-                }
+                };
             });
             try {
                 return await promise;

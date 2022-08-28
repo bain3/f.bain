@@ -14,15 +14,19 @@ MONTH_SECONDS = 30 * 24 * 60 * 60
 
 router = APIRouter()
 
-# logger = logging.getLogger("gunicorn.error")
-
 
 def generate_unique_uuid() -> str:
     # get a new uuid
     uuid = None
     while uuid is None or redis.exists("file:" + uuid):
-        uuid = ''.join([choice("0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,") for _ in
-                        range(UUID_SIZE)])
+        uuid = "".join(
+            [
+                choice(
+                    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$-_.+!*'(,"
+                )
+                for _ in range(UUID_SIZE)
+            ]
+        )
 
     return uuid
 
@@ -32,12 +36,14 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
     block_num = int(redis.hget("session:" + session, "block") or "")
 
     if not redis.hsetnx("session:" + session, "lock", 1):
-        await socket.send_json({"code": 401, "detail": "Another upload is already in progress"})
+        await socket.send_json(
+            {"code": 401, "detail": "Another upload is already in progress"}
+        )
         return
 
     # the temporary file needs to be on a volume because writing to it is a lot faster, also
     # we can move it without copying it
-    async with aiofiles.open("/mount/partial/" + session, 'ab+') as f:
+    async with aiofiles.open("/mount/partial/" + session, "ab+") as f:
         try:
             while size > 0:
                 await socket.send_json({"code": 100, "block": block_num})
@@ -63,7 +69,9 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
     if size < 0:
         redis.delete("session:" + session)
         await aiofiles.os.remove("/mount/partial/" + session)
-        await socket.send_json({"code": 414, "detail": "Uploaded more data than declared"})
+        await socket.send_json(
+            {"code": 414, "detail": "Uploaded more data than declared"}
+        )
 
     elif size > 0:
         # this only happens if the session expired
@@ -75,20 +83,25 @@ async def handle_upload(socket: WebSocket, session: str) -> None:
         revocation_token = secrets.token_urlsafe(18)
         uuid = generate_unique_uuid()
 
-        redis.hset("file:" + uuid, mapping={
-            "metadata": meta,
-            "revocation": revocation_token
-        })
+        redis.hset(
+            "file:" + uuid, mapping={"metadata": meta, "revocation": revocation_token}
+        )
         redis.expire("file:" + uuid, MONTH_SECONDS)
 
         redis.delete("session:" + session)
 
-        await aiofiles.os.rename("/mount/partial/" + session, "/mount/upload/" + uuid.encode().hex())
+        await aiofiles.os.rename(
+            "/mount/partial/" + session, "/mount/upload/" + uuid.encode().hex()
+        )
 
-        await socket.send_json({"code": 201, "uuid": uuid, "revocation_token": revocation_token})
+        await socket.send_json(
+            {"code": 201, "uuid": uuid, "revocation_token": revocation_token}
+        )
 
 
-@router.post("/upload", summary="Create a new session for uploading", response_model=SessionToken)
+@router.post(
+    "/upload", summary="Create a new session for uploading", response_model=SessionToken
+)
 async def make_session(body: FileMeta):
     if body.content_length > int(redis.get("maxfs") or ""):
         raise HTTPException(status_code=422, detail="File too large")
@@ -96,11 +109,10 @@ async def make_session(body: FileMeta):
     session_token = None
     while session_token is None or redis.exists("session:" + session_token):
         session_token = secrets.token_hex(16)
-    redis.hset("session:" + session_token, mapping={
-        "size": body.content_length,
-        "meta": body.json(),
-        "block": 0
-    })
+    redis.hset(
+        "session:" + session_token,
+        mapping={"size": body.content_length, "meta": body.json(), "block": 0},
+    )
     redis.expire("session:" + session_token, 7200)
 
     return {"session_token": session_token}

@@ -21,10 +21,12 @@ def head_status():
 
 @router.get("/status", response_model=StatusResponse)
 def get_status(authorization: str = Header(None)):
-    if STATUS_TOKEN and (authorization is None or not secrets.compare_digest(STATUS_TOKEN, authorization)):
+    if STATUS_TOKEN and (
+        authorization is None or not secrets.compare_digest(STATUS_TOKEN, authorization)
+    ):
         raise HTTPException(status_code=401)
 
-    dir_ = '/mount/upload/'
+    dir_ = "/mount/upload/"
     count = 0
     total_size = 0
     file: os.DirEntry
@@ -36,10 +38,10 @@ def get_status(authorization: str = Header(None)):
     return {
         "files": count,
         "total_disk_usage": total_size,
-        "worker_up_time": time() - worker_start_time
+        "worker_up_time": time() - worker_start_time,
     }
 
 
 @router.get("/max-filesize", response_model=FileSizeLimitResponse)
 async def get_max_filesize():
-    return {"max": int(redis.get('maxfs') or "0")}
+    return {"max": int(redis.get("maxfs") or "0")}

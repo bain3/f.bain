@@ -20,12 +20,21 @@ def check_token(token: str, uuid: str):
     if not redis.exists("file:" + uuid):
         raise HTTPException(status_code=404)
 
-    if (not ADMIN_TOKEN or not secrets.compare_digest(token, ADMIN_TOKEN)) \
-            and not secrets.compare_digest(token, redis.hget("file:" + uuid, "revocation").decode()):
-        raise HTTPException(status_code=401, detail="ID and token combination is invalid.")
+    if (
+        not ADMIN_TOKEN or not secrets.compare_digest(token, ADMIN_TOKEN)
+    ) and not secrets.compare_digest(
+        token, redis.hget("file:" + uuid, "revocation").decode()
+    ):
+        raise HTTPException(
+            status_code=401, detail="ID and token combination is invalid."
+        )
 
 
-@router.get("/{uuid}", summary="Get HTML for file download and decryption", response_class=HTMLResponse)
+@router.get(
+    "/{uuid}",
+    summary="Get HTML for file download and decryption",
+    response_class=HTMLResponse,
+)
 async def get_file(uuid: str):
     meta = redis.hget("file:" + uuid, "metadata")
     if not meta:
@@ -33,7 +42,7 @@ async def get_file(uuid: str):
     if not os.path.exists("/mount/upload/" + uuid.encode().hex()):
         redis.delete("file:" + uuid)
         raise HTTPException(status_code=404, detail="File not found.")
-    async with aiofiles.open("/mount/static/index.html", 'r') as f:
+    async with aiofiles.open("/mount/static/index.html", "r") as f:
         return HTMLResponse(await f.read())
 
 

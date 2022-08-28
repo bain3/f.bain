@@ -4,12 +4,7 @@ import time
 from redis import Redis
 import os
 
-REDIS = {
-    "host": "redis",
-    "port": 6379,
-    "db": 0,
-    "password": None
-}
+REDIS = {"host": "redis", "port": 6379, "db": 0, "password": None}
 
 redis = Redis(**REDIS)
 
@@ -26,7 +21,7 @@ def check_file(filename: str) -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # explicitly flush because of nohup
     print("Started cleanup script", flush=True)
     while True:

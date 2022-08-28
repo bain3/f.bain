@@ -2,12 +2,7 @@ import os
 
 from redis import Redis
 
-REDIS = {
-    "host": "redis",
-    "port": 6379,
-    "db": 0,
-    "password": None
-}
+REDIS = {"host": "redis", "port": 6379, "db": 0, "password": None}
 
 redis = Redis(**REDIS)
 

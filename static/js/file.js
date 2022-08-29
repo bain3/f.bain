@@ -1,8 +1,9 @@
 const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~()'!*:@,;";
-const PBKDF2_ITERATIONS = 500000;
+const CIPHER_VERSION = "v1";
 
-// this is the block size if UNENCRYPTED data (+48 if encrypted to account for IV and tag)
-const BLOCK_SIZE = 5242880;
+// block size of unencrypted data (encrypted +16 bytes for GCM tag)
+const BLOCK_SIZE = 1024 * 1024;  // 1 MiB
+const PBKDF2_ITERATIONS = 1_000_000;
 
 /**
  * Progress handler
@@ -65,30 +66,33 @@ class CryptoPair {
      * @type ArrayBuffer
      * @readonly
      */
-    ogBlockIV;
+    blockIVBase;
     /**
      * @type ArrayBuffer
      * @readonly
      */
-    filenameIV;
+    filenameIVBase;
 
     /** @type boolean */
-    _filenameEncrypted;
+    _filenameEncrypted = false;
 
-    /** @type Uint8Array */
-    _currentIV;
+    /** 
+     * @type Number
+     * @readonly
+     */
+    blockNumber = 0;
 
-    /** @type Uint8Array */
-    _rollbackIV;
+    /** 
+     * @type boolean
+     * @readonly
+     */
+    rolledBack = false;
 
-    constructor(password, key, ogBlockIV, filenameIV) {
-        this.password = password;
+    constructor(password, key, blockIVBase, filenameIVBase) {
         this.key = key;
-        this.ogBlockIV = ogBlockIV;
-        this.filenameIV = filenameIV;
-        this._filenameEncrypted = false;
-        this._currentIV = ogBlockIV;
-        this._rollbackIV = ogBlockIV;
+        this.password = password;
+        this.blockIVBase = blockIVBase;
+        this.filenameIVBase = filenameIVBase;
     }
 
     /**
@@ -108,21 +112,37 @@ class CryptoPair {
             false,
             ["deriveBits"]
         );
+        // strengthened password for 1 key (128 bits) and 2 IVs (both 64 bits)
         const strengthened = await subtle.deriveBits(
             { name: "PBKDF2", hash: "SHA-256", salt: salt, iterations: PBKDF2_ITERATIONS },
             importedPassword,
-            768
+            256
         );
 
         const key = await subtle.importKey(
             "raw",
-            strengthened.slice(0, 32),
+            strengthened.slice(0, 16),
             "AES-GCM",
             false,
             ["encrypt", "decrypt"]
         );
 
-        return new CryptoPair(password, key, strengthened.slice(32, 64), strengthened.slice(64, 96));
+        return new CryptoPair(password, key, strengthened.slice(16, 24), strengthened.slice(24, 32));
+    }
+
+    /**
+     * Generate a full IV from a 8 byte base and a 4 byte unsigned integer
+     * @param {Uint8Array} ivBase 
+     * @param {Number} n 
+     * @returns {Uint8Array}
+     */
+    genFullIV(ivBase, n = 0) {
+        let iv = new Uint8Array(12);
+        iv.set(ivBase, 0);
+        // converting n to little Uint little endian
+        const n_bytes = new Uint8Array([n >> 24 & 0xff, n >> 16 & 0xff, n >> 8 & 0xff, n & 0xff]);
+        iv.set(n_bytes, 8);
+        return iv;
     }
 
     /**
@@ -137,7 +157,7 @@ class CryptoPair {
         this._filenameEncrypted = true;
 
         let enc_bytes = await window.crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: this.filenameIV, tagLength: 128 },
+            { name: "AES-GCM", iv: this.genFullIV(this.filenameIVBase, 0), tagLength: 128 },
             this.key,
             new TextEncoder().encode(filename)
         );
@@ -148,27 +168,21 @@ class CryptoPair {
     }
 
     /**
-     * Encrypts a block of 5242880 (5MiB) bytes according to the f.bain protocol.
-     * Generates a new IV for next use.
-     * @param {Uint8Array} blockData 5242880
+     * Encrypts a block (BLOCK_SIZE bytes) according to the f.bain protocol.
+     * @param {Uint8Array} blockData BLOCK_SIZE sized block of data
      * @returns {Promise<ArrayBuffer>} ciphertext
      */
     async encryptBlock(blockData) {
-        const newIv = new Uint8Array(32);
-        window.crypto.getRandomValues(newIv);
-
-        let block = new Uint8Array(newIv.byteLength + blockData.byteLength);
-        block.set(newIv, 0);
-        block.set(blockData, 32);
-
-        const cipher = await window.crypto.subtle.encrypt(
-            { name: "AES-GCM", iv: this._currentIV, tagLength: 128 },
+        const cipher = await window.crypto.subtle.encrypt({
+            name: "AES-GCM",
+            iv: this.genFullIV(this.blockIVBase, this.blockNumber++),
+            tagLength: 128
+        },
             this.key,
-            block
+            blockData
         );
 
-        this._rollbackIV = this._currentIV;
-        this._currentIV = newIv;
+        this.rolledBack = false;
 
         return cipher;
     }
@@ -177,7 +191,10 @@ class CryptoPair {
      * Rollback IV to the previous block (used when connection drops)
      */
     async rollbackIV() {
-        this._currentIV = this._rollbackIV;
+        if (!this.rolledBack) {
+            this.blockNumber--;
+            this.rolledBack = true;
+        }
     }
 
     /**
@@ -191,23 +208,25 @@ class CryptoPair {
         for (let i = 0; i < b64.length; i++) decoded_cipher[i] = b64.charCodeAt(i);
 
         return new TextDecoder().decode(await window.crypto.subtle.decrypt(
-            { name: "AES-GCM", iv: this.filenameIV, tagLength: 128 },
+            { name: "AES-GCM", iv: this.genFullIV(this.filenameIVBase, 0), tagLength: 128 },
             this.key,
             decoded_cipher
         ));
     }
 
     /**
-     * Decrypts a block of 5242928 (~5MiB) bytes according to the f.bain protocol.
+     * Decrypts a block of BLOCK_SIZE bytes according to the f.bain protocol.
      * @param {ArrayBuffer} cipher
      * @returns {Promise<ArrayBuffer>} block
      */
     async decryptBlock(cipher) {
-        const d_block = await window.crypto.subtle.decrypt(
-            { "name": "AES-GCM", "iv": this._currentIV, "tagLength": 128 },
-            this.key, cipher);
-        this._currentIV = new Uint8Array(d_block.slice(0, 32)); // update iv for next iteration
-        return d_block.slice(32, cipher.byteLength);
+        return await window.crypto.subtle.decrypt({
+            "name": "AES-GCM",
+            "iv": this.genFullIV(this.blockIVBase, this.blockNumber++),
+            "tagLength": 128
+        },
+            this.key, cipher
+        );
     }
 
 }
@@ -226,16 +245,14 @@ class LocalFile {
     /**
      * Upload this file to a host.
      * @param {number} keyLength length of the encryption key
+     * @param {ProgressHandler} progressHandler optional handler for progress updates
      * @param {string} host file host in format <protocol>://<host> leave undefined to
      * use the current address as the host, notice no / at the end
-     * @param {ProgressHandler} progressHandler optional handler for progress updates
      *
      * @return {Promise<{uuid: string, revocationToken: string, password: string}>}
      *  object containing the uuid, revocationToken, and password
      */
-    async upload(keyLength, host, progressHandler) {
-        if (host === undefined) host = "";  // set default for host if not provided
-
+    async upload(keyLength, progressHandler, host = "") {
         if (window.crypto === undefined) {
             throw "browser does not support necessary cryptographic API";
         }
@@ -262,7 +279,7 @@ class LocalFile {
         }
 
         progressHandler({ statusText: "creating session" });
-        const contentLength = Math.ceil(this.file.size / BLOCK_SIZE) * 48 + this.file.size;
+        const contentLength = Math.ceil(this.file.size / BLOCK_SIZE) * 16 + this.file.size;
         const session_token = await this._createUploadSession(host, encryptedFilename, salt, contentLength);
         const response = await this._uploadWithSession(host, session_token, keyPair, progressHandler);
 
@@ -493,7 +510,7 @@ class ForeignFile {
                             reject("File was not found");
                             return;
                         }
-                        socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48, "seek": offset }));
+                        socket.send(JSON.stringify({ "read": BLOCK_SIZE + 16, "seek": offset }));
                         first_msg = false;
                         return;
                     }
@@ -515,7 +532,7 @@ class ForeignFile {
                         return;
                     }
 
-                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 48 }));
+                    socket.send(JSON.stringify({ "read": BLOCK_SIZE + 16 }));
                 };
 
                 socket.onclose = _ => {

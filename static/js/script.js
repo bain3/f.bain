@@ -58,12 +58,13 @@ async function sendRequest(file) {
     }
 
     // upload file
+    progress_bar.update({ statusText: "generating key" });
     const localFile = new LocalFile(file);
     let resp;
     try {
-        resp = await localFile.upload(strength, "", p => progress_bar.update(p));
+        resp = await localFile.upload(strength, p => progress_bar.update(p));
     } catch (e) {
-        progress_bar.update({ status: "error", statusText: e })
+        progress_bar.update({ status: "error", statusText: e });
         console.log(e);
         return;
     }
@@ -85,7 +86,7 @@ async function getMaxFileSize() {
         let magnitudes = ["", "K", "M", "G", "T"];
         let current_mag = 0;
         while (size >= 1000 && current_mag < 4) {
-            size /= 1000
+            size /= 1000;
             current_mag++;
         }
         R('filesize').innerText = Math.round(size * 10) / 10 + magnitudes[current_mag] + "B";

@@ -5,6 +5,7 @@ import time
 from json import JSONDecodeError
 
 import aiofiles
+import aiofiles.os
 from fastapi import APIRouter, HTTPException, Header, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 

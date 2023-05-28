@@ -4,6 +4,7 @@ import secrets
 from random import choice
 
 import aiofiles
+import aiofiles.os
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 from ..db import redis

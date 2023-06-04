@@ -17,7 +17,7 @@ function getSizeHumanReadable(size) {
     return `${Math.round(size * 10) / 10} ${magnitudes[current_mag]}B`;
 }
 
-function getRevocationToken(url, id) {
+function extractRevTokenFromURL(url, id) {
     const urlRevToken = url.searchParams.get('rt');
     if (urlRevToken !== null) {
         window.history.replaceState(null, 'Download', `${url.pathname}${url.hash}`);
@@ -46,7 +46,7 @@ async function on_load() {
         decodeURI(url.hash.substring(1))
     ];
 
-    revocationToken = getRevocationToken(url, id_pair[0]);
+    revocationToken = extractRevTokenFromURL(url, id_pair[0]);
     if (revocationToken === '') {
         R('settings.exportToken').innerText = 'Import token';
         R('settings.exportToken').onclick = importToken;
@@ -163,8 +163,12 @@ function importToken() {
 function exportToken() {
     R('settings.revocationToken').hidden = false;
     R('settings.revocationToken.input').value = window.localStorage.getItem(`revocation-${fileObject.id}`) || '';
+
+    window.localStorage.removeItem(`revocation-${fileObject.id}`);
+
     R('settings.text').innerText =
         "Removed revocation token from internal storage. You won't be able to delete this file without it.";
+
     R('settings.exportToken').innerText = "Import token";
     R('settings.exportToken').onclick = importToken;
 }

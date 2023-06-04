@@ -42,8 +42,8 @@ function generatePassword(length) {
 }
 
 
-async function wait(milliseconds) {
-    await new Promise((res, _) => setTimeout(() => res(), milliseconds));
+function wait(milliseconds) {
+    return new Promise((res, _) => setTimeout(() => res(), milliseconds));
 }
 
 
@@ -474,7 +474,7 @@ class ForeignFile {
             filename = await keyPair.decryptFilename(resp_json.filename);
         } catch (e) {
             console.log(e);
-            throw "failed to decrypt. bad password?";
+            throw "failed to decrypt";
         }
         return new ForeignFile(host, id, keyPair, filename, resp_json.content_length);
     }
@@ -557,12 +557,13 @@ class ForeignFile {
     }
 
     /**
-     * Deletes the file from remote server
+     * Deletes a file from remote server
+     * @param {string} file_id
      * @param {string} revocationToken
      * @returns {Promise<boolean>} boolean signifying if the file was deleted
      */
-    async delete(revocationToken) {
-        let resp = await fetch("/" + this.id, {
+    static async delete(file_id, revocationToken) {
+        let resp = await fetch("/" + file_id, {
             method: "DELETE", headers: { authorization: revocationToken }
         });
         return resp.status === 200;
@@ -570,11 +571,12 @@ class ForeignFile {
 
     /**
      * Expiration property
+     * @param {string} file_id
      * @param {string} revocationToken
      * @returns {Promise<number>} time at which the file expires (unix seconds timestamp); -2 if an error occured
      */
-    async expires_at(revocationToken) {
-        let resp = await fetch(`/${this.id}/expire`, {
+    static async expires_at(file_id, revocationToken) {
+        let resp = await fetch(`/${file_id}/expire`, {
             headers: { authorization: revocationToken }
         });
         if (resp.ok) {
@@ -587,12 +589,13 @@ class ForeignFile {
 
     /**
      * Set new expiration date
+     * @param {string} file_id
      * @param {string} revocationToken
      * @param {number} timestamp unix seconds timestamp at which the file should expire
      * @returns {Promise<boolean>} booleans signifying if the new expiration date was set
      */
-    async set_expires_at(revocationToken, timestamp) {
-        let resp = await fetch(`/${this.id}/expire`, {
+    static async set_expires_at(file_id, revocationToken, timestamp) {
+        let resp = await fetch(`/${file_id}/expire`, {
             method: "PUT",
             body: JSON.stringify({ "expires_at": timestamp }),
             headers: { authorization: revocationToken, "content-type": "application/json" }

@@ -2,6 +2,7 @@ let downloaded = false;
 let revocationToken = '';
 let fileObject = null;
 let expire_index = 0;
+let file_id;
 
 function secondsToDays(seconds) {
     return Math.ceil(seconds / 60 / 60 / 24);
@@ -54,6 +55,7 @@ async function on_load() {
         R('settings.revocationToken').hidden = false;
     }
 
+    file_id = id_pair[0];
     if (id_pair.length === 1 || id_pair[1] === "") {
         progress.update({
             status: "error",
@@ -73,7 +75,6 @@ async function on_load() {
         return;
     }
     fileObject = file;
-    R('settings.button').hidden = false;
 
     R('file.name').innerText = file.filename;
     R('file.size').innerText = getSizeHumanReadable(file.size);
@@ -150,7 +151,7 @@ function toggleSettings() {
 function importToken() {
     let token = R('settings.revocationToken.input').value;
     if (token === '') return;
-    window.localStorage.setItem(`revocation-${fileObject.id}`, token);
+    window.localStorage.setItem(`revocation-${file_id}`, token);
     revocationToken = token;
     R('settings.exportToken').innerText = 'Export token';
     R('settings.exportToken').onclick = exportToken;
@@ -162,9 +163,9 @@ function importToken() {
 
 function exportToken() {
     R('settings.revocationToken').hidden = false;
-    R('settings.revocationToken.input').value = window.localStorage.getItem(`revocation-${fileObject.id}`) || '';
+    R('settings.revocationToken.input').value = window.localStorage.getItem(`revocation-${file_id}`) || '';
 
-    window.localStorage.removeItem(`revocation-${fileObject.id}`);
+    window.localStorage.removeItem(`revocation-${file_id}`);
 
     R('settings.text').innerText =
         "Removed revocation token from internal storage. You won't be able to delete this file without it.";
@@ -177,8 +178,8 @@ function deleteFile() {
     R('settings.deleteFile').innerText = "Are you sure?";
     R('settings.deleteFile').onclick = async () => {
         console.log(revocationToken);
-        if (await fileObject.delete(revocationToken)) {
-            window.localStorage.removeItem(`revocation-${fileObject.id}`);
+        if (await ForeignFile.delete(file_id, revocationToken)) {
+            window.localStorage.removeItem(`revocation-${file_id}`);
             window.location = "/";
         } else {
             R('settings.deleteFile').innerText = "Delete file";
@@ -192,7 +193,7 @@ async function setExpire() {
     let now = Math.round(new Date().getTime() / 1000);
     let expirations = [now + 7 * 24 * 60 * 60, now + 30 * 24 * 60 * 60, -1];
     let expire_in = expirations[(expire_index++) % 3];
-    if (await fileObject.set_expires_at(revocationToken, expire_in)) {
+    if (await ForeignFile.set_expires_at(file_id, revocationToken, expire_in)) {
         if (expire_in > 0) R('settings.expiration').innerText = `Expires in: ${secondsToDays(expire_in - now)} days`;
         else R('settings.expiration').innerText = "Expires in: never";
     }
@@ -200,7 +201,7 @@ async function setExpire() {
 
 async function loadExpire() {
     let now = Math.round(new Date().getTime() / 1000);
-    let expiration = await fileObject.expires_at(revocationToken);
+    let expiration = await ForeignFile.expires_at(file_id, revocationToken);
     if (expiration === -2) {
         R('settings.text').innerText = "Failed to fetch expiration data";
     } else if (expiration === -1) {

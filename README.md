@@ -11,8 +11,92 @@ Deploying this website isn't very complicated.
 1. Clone this repo
 2. Take a look at `docker-compose.yml` and change the environment variables if you want to
 3. Use docker-compose to build and run the api
-4. Install nginx and set it up to reverse proxy anything that isn't found in `static`. You can find
-   countless tutorials online on how to do this
+4. Install a reverse proxy (for example nginx or Caddy) and set it up like so:
+   - try responding with a file from `/static` (e.g. index.html)
+   - if the file can't be found, reverse proxy the request to the API.
+   - if the API returns an error, return the static file corresponding to the error.
+     Although you can find countless tutorials online on how to do this, 
+     here are some examples:
+
+<details><summary>Nginx configuration example</summary>
+
+```nginx
+server {
+    root /path/to/static;
+    error_log off;
+    access_log off;
+    index index.html;
+
+    client_max_body_size 0;
+
+    server_name example.com;
+
+    error_page 404 /404.html;
+    error_page 429 /429.html;
+
+    location / {
+        try_files $uri $uri/ @proxy_pass;
+    }
+
+    location @proxy_pass {
+        proxy_intercept_errors on;
+        proxy_pass http://localhost:3333;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+    }
+
+    listen [::]:443 ssl http2;
+    listen 443 ssl http2;
+    # SSL configuration
+}
+
+server {
+    if ($host = example.com) {
+        return 301 https://$host$request_uri;
+    }
+
+    server_name example.com;
+    listen [::]:80;
+    listen 80;
+    return 404;
+}
+```
+</details>
+
+<details><summary>Caddy configuration example</summary>
+
+[//]: # (While Caddyfiles are not Python, it is the closest highlighting we can get.)
+
+```python
+# Replace f.example.com with your (sub) domain.
+f.example.com {
+    # copy or mount the static directory of the repo to /srv/f-bain
+    root * /srv/f-bain
+    encode gzip
+    file_server
+
+    @reverse_proxy {
+        not file {
+            try_files {path} {path}/index.html
+        }
+    }
+	
+    # Forward requests that are not for static files to the API
+    # (change hostname & port if needed)
+    reverse_proxy @reverse_proxy f-bain-api:80 {
+        @error status 404 429
+        handle_response @error {
+            rewrite * /{rp.status_code}.html
+            file_server
+        }
+    }
+
+}
+```
+</details>
+
 5. Set up HTTPS for basic security
    
 ## How does it work?

@@ -1,4 +1,4 @@
-const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~()'!*:@,;";
+const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._";
 const CIPHER_VERSION = "v1";
 
 // block size of unencrypted data (encrypted +16 bytes for GCM tag)
@@ -15,29 +15,26 @@ const PBKDF2_ITERATIONS = 1_000_000;
 /**
  * Generates a password for encryption. 
  *
- * The current alphabet has 75 letters to chose from, which means log2(75) (~6.2) bits of 
- * entropy per letter. The last letter is only chosen from 68 characters to make
- * the link sendable in chats. That means for any password of length n, the 
- * entropy will be (n-1)*log2(75)+log2(68).
+ * The current alphabet has 65 letters to chose from, which means log2(65) (~6.0) bits of 
+ * entropy per letter. That means for any password of length n, the entropy will be
+ * n*log2(65)
  * @param {number} length character length of the password
  * @returns {string}
  */
 function generatePassword(length) {
     let array = new Uint8Array(length);
     let output;
-    do {
-        output = "";
-        while (output.length < length) {
-            window.crypto.getRandomValues(array);
-            for (let i = 0; i < array.length; i++) {
-                // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
-                // otherwise we wouldn't have an even distribution
-                if (array[i] > Math.floor(255 / KEY_ALPHABET.length) * KEY_ALPHABET.length) continue;
-                output += KEY_ALPHABET[Math.abs(array[i] % KEY_ALPHABET.length)];
-                if (output.length === length) break;
-            }
+    output = "";
+    while (output.length < length) {
+        window.crypto.getRandomValues(array);
+        for (let i = 0; i < array.length; i++) {
+            // skip values that are larger than the biggest multiple of KEY_ALPHABET.length
+            // otherwise we wouldn't have an even distribution
+            if (array[i] > Math.floor(255 / KEY_ALPHABET.length) * KEY_ALPHABET.length) continue;
+            output += KEY_ALPHABET[Math.abs(array[i] % KEY_ALPHABET.length)];
+            if (output.length === length) break;
         }
-    } while (".)'!:,;".includes(output[length - 1]));
+    }
     return output;
 }
 

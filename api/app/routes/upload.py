@@ -23,7 +23,7 @@ def generate_unique_uuid() -> str:
         uuid = "".join(
             [
                 choice(
-                    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._~()'!*:@,;"
+                    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
                 )
                 for _ in range(UUID_SIZE)
             ]

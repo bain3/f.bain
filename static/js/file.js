@@ -1,4 +1,4 @@
-const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-._";
+const KEY_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const CIPHER_VERSION = "v1";
 
 // block size of unencrypted data (encrypted +16 bytes for GCM tag)

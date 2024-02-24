@@ -21,22 +21,15 @@ let max_file_size = 0;
 
 function inputHandler(ev) {
     ev.preventDefault();
-    sendRequest(ev.target.files[0]);
+    sendRequest(ev.target.files);
 }
 
 function dropHandler(ev) {
     ev.preventDefault();
-    let toSend;
-    if (ev.dataTransfer.items) {
-        toSend = ev.dataTransfer.items[0].getAsFile();
-    } else {
-        toSend = ev.dataTransfer.files[0];
-    }
-    sendRequest(toSend);
+    sendRequest(ev.dataTransfer.files);
 }
 
-async function sendRequest(file) {
-
+async function sendRequest(files) {
     // make center clickable, disable file input, hide welcome screen, and show progress information
     R('container').classList.remove('click-through');
     R('screen.0').hidden = true;
@@ -48,6 +41,45 @@ async function sendRequest(file) {
         R('prgrs.value'),
         R('prgrs.status')
     );
+
+    if (files.length === 0) {
+        // I'm not sure if this is possible, but just in case
+        progress_bar.update({
+            status: "error",
+            statusText: "No file selected"
+        });
+        setTimeout(() => {
+            R('container').classList.add('click-through');
+            R('screen.0').hidden = false;
+            R('screen.1').style.visibility = 'hidden';
+            R('fileInput').disabled = false;
+        }, 1500);
+        return;
+    }
+
+    let file;
+    
+    if (files.length === 1) {
+        file = files[0];
+    } else {
+        let filesArray = Array.from(files);
+        progress_bar.update({ statusText: "zipping files" });
+        // Get the total size of all files
+        let totalSize = filesArray.map(f => f.size).reduce((a, b) => a + b);
+        // Zip files
+        let zip = new JSZip();
+        let zipped_size = 0;
+        filesArray.forEach(f => {
+            console.log(f);
+            zip.file(f.name, f);
+            zipped_size += f.size;
+            progress_bar.update({ progress: zipped_size / totalSize });
+        });
+        file = await zip.generateAsync({ type: "blob" });
+        // Generate a name for the zip file
+        uuid = make_id();
+        file.name = `files-${uuid}.zip`;
+    }
 
     if (file.size >= max_file_size) {
         progress_bar.update({
@@ -91,6 +123,13 @@ async function getMaxFileSize() {
         }
         R('filesize').innerText = Math.round(size * 10) / 10 + magnitudes[current_mag] + "B";
     }
+}
+
+function make_id() {
+    // Generate a base64 6-character string
+    // This function is not cryptographically secure, but it doesn't need to be
+    // because it's just for generating a file name
+    return btoa(Math.random().toString()).slice(0, 6);
 }
 
 R.preload().then(getMaxFileSize);

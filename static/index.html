@@ -8,6 +8,7 @@
     <script defer src="js/progress.js"></script>
     <script defer src="js/referencer.js"></script>
     <script defer src="js/script.js"></script>
+    <script defer src="js/jszip.min.js"></script>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/landing.css">
 </head>
@@ -15,7 +16,7 @@
 <label for="fi" style="opacity: 0;">file input</label>
 <label for="si" style="opacity: 0;">key strength input</label>
 <input type="file" ondrop="dropHandler(event);" x-r="fileInput" onchange="inputHandler(event);" title=" "
-       autocomplete="off" class="file-input" id="fi">
+       autocomplete="off" class="file-input" id="fi" multiple>
 <div class="center click-through" x-r="container">
     <div id="welcome-div" x-r="screen.0">
         <img src="upload.svg" alt="upload file icon"/>

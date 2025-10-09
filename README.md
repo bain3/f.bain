@@ -175,6 +175,17 @@ Authorization: TOKEN
 (empty body)
 ```
  
+# Manually restoring an expired file link
+
+You'll need the file and the link. Proceed as follows :
+- Open your file sharing website. Open developer tools, go to `sources > js > file.js` and hardcode the wanted token as the return value of `generatePassword`. Press `Ctrl+S` to save for this session.
+- Upload the file, set wanted expiration with the cog menu (probably `never`).
+- On the server, run, probably as root and in your upload directory (replacing uuid with the part before `#` in both URLs) :
+```
+docker exec -it f-bain-redis redis-cli COPY file:<newly-uploaded-uuid> file:<uuid-to-restore>
+cp -i $(python3 -c 'print("<newly-uploaded-uuid>".encode().hex())') $(python3 -c 'print("<uuid-to-restore>".encode().hex())')
+```
+- The old URL should be working again ! You can also delete the temporary link from the web interface.
 
 [pbkdf2]: https://en.wikipedia.org/wiki/PBKDF2
 [aesgcm]: https://en.wikipedia.org/wiki/Galois/Counter_Mode
